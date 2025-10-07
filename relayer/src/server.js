@@ -717,13 +717,16 @@ app.get('/market-stats', async (req, reply) => {
   }
 });
 
-// Catch-all route for SPA to serve index.html
-app.get('/*', async (_req, reply) => {
-  try {
-    return reply.sendFile('index.html');
-  } catch {
-    return reply.code(404).send({ error: 'not found' });
+// SPA fallback for client-side routes using notFound handler
+app.setNotFoundHandler((req, reply) => {
+  if (req.raw.method === 'GET') {
+    try {
+      return reply.type('text/html').sendFile('index.html');
+    } catch {
+      return reply.code(404).send({ error: 'not found' });
+    }
   }
+  return reply.code(404).send({ error: 'not found' });
 });
 
 // ---------------------
