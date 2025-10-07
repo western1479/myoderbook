@@ -21,3 +21,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# nested node_modules across packages
+**/node_modules
+
+# environment secrets (never commit)
+relayer/.env
+**/.env
+**/.env.*
