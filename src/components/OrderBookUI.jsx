@@ -437,7 +437,7 @@ export default function OrderBookUI() {
   useEffect(() => { try { console.log('[DEBUG] lastTxHash changed', lastTxHash, 'status', status); } catch {} }, [lastTxHash, status]);
 
   // Relayer configuration
-  const RELAYER_URL = process.env.REACT_APP_RELAYER_URL || 'http://localhost:8080';
+  const RELAYER_URL = process.env.REACT_APP_RELAYER_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080');
   const httpUrl = RELAYER_URL.replace(/\/$/, '');
   const wsUrl = httpUrl.replace(/^http(s)?:\/\//, (_m, s) => (s ? 'wss://' : 'ws://'));
 
@@ -962,3 +962,4 @@ export default function OrderBookUI() {
     </div>
   );
 }
+
