@@ -437,7 +437,18 @@ export default function OrderBookUI() {
   useEffect(() => { try { console.log('[DEBUG] lastTxHash changed', lastTxHash, 'status', status); } catch {} }, [lastTxHash, status]);
 
   // Relayer configuration
-  const RELAYER_URL = process.env.REACT_APP_RELAYER_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080');
+  let RELAYER_URL = (process.env.REACT_APP_RELAYER_URL || '').trim();
+  const isBrowser = typeof window !== 'undefined';
+  if (isBrowser) {
+    const host = window.location.hostname;
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    const envIsLocal = /^(http|https):\/\/(localhost|127\.0\.0\.1)(:\\d+)?/i.test(RELAYER_URL);
+    // In production (non-localhost), ignore env if it points to localhost; default to same-origin
+    if (!RELAYER_URL || (!isLocalHost && envIsLocal)) {
+      RELAYER_URL = window.location.origin;
+    }
+  }
+  if (!RELAYER_URL) RELAYER_URL = 'http://localhost:8080';
   const httpUrl = RELAYER_URL.replace(/\/$/, '');
   const wsUrl = httpUrl.replace(/^http(s)?:\/\//, (_m, s) => (s ? 'wss://' : 'ws://'));
 
@@ -962,4 +973,3 @@ export default function OrderBookUI() {
     </div>
   );
 }
-
