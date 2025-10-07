@@ -345,7 +345,7 @@ export default function OrderBookUI() {
   const [account, setAccount] = useState('');
   const [chainId, setChainId] = useState(0);
   const { open } = useWeb3Modal();
-  const { address, chainId: w3mChainId, isConnected } = useWeb3ModalAccount();
+  const { address, isConnected } = useWeb3ModalAccount();
   const { walletProvider } = useWeb3ModalProvider();
 
   const [markets, setMarkets] = useState(MARKETS);
@@ -381,11 +381,6 @@ export default function OrderBookUI() {
   // Approvals / taker
   const [approveTokenAddr, setApproveTokenAddr] = useState('');
   const [approveAmount, setApproveAmount] = useState('');
-  const [fillOrderJson, setFillOrderJson] = useState('');
-  const [fillSig, setFillSig] = useState('');
-  const [fillAmountBase, setFillAmountBase] = useState('');
-  const [fillAmountMode, setFillAmountMode] = useState('base'); // 'base' | 'quote'
-  const [fillAmountQuote, setFillAmountQuote] = useState('');
   const [cancelUpToNonce, setCancelUpToNonce] = useState('');
   const [balanceBase, setBalanceBase] = useState('0');
   const [balanceQuote, setBalanceQuote] = useState('0');
@@ -565,9 +560,16 @@ export default function OrderBookUI() {
               console.log('[DEBUG] WS Trade', { txh, msg, account, isMaker, isTaker });
               if (txh && (isMaker || isTaker)) {
                 setLastTxHash(txh);
-                if (!status || String(status).indexOf(txh.slice(0,8)) === -1) {
-                  setStatus('Trade confirmed: ' + txh.slice(0,10) + '...');
-                }
+                setStatus(prev => {
+                  try {
+                    if (!prev || String(prev).indexOf(txh.slice(0,8)) === -1) {
+                      return 'Trade confirmed: ' + txh.slice(0,10) + '...';
+                    }
+                    return prev;
+                  } catch {
+                    return 'Trade confirmed: ' + txh.slice(0,10) + '...';
+                  }
+                });
               }
             } catch {}
           }
@@ -626,44 +628,7 @@ export default function OrderBookUI() {
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
-  const doFill = async () => {
-    try {
-      if (!signer) return alert('Connect wallet');
-      if (!fillOrderJson || !fillSig) return alert('Paste order JSON and signature');
-      const o = JSON.parse(fillOrderJson);
-      let fillAmt;
-      if (fillAmountMode === 'quote') {
-        const qd = selected.quote?.decimals || 18;
-        const q = parseUnits(String(fillAmountQuote || '0'), Number(qd));
-        // fillBase = quote * 1e18 / price
-        fillAmt = (toBigInt(q) * toBigInt(parseUnits('1', 18))) / toBigInt(o.price);
-      } else {
-        const baseDec = selected.base?.decimals || 18;
-        fillAmt = parseUnits(String(fillAmountBase || '0'), Number(baseDec));
-      }
-      setStatus('Sending fillOrder...');
-      const tx = await orderbook.connect(signer).fillOrder({ maker: norm(o.maker), base: norm(o.base), quote: norm(o.quote), side: Number(o.side), amount: toBigInt(o.amount), price: toBigInt(o.price), expiry: toBigInt(o.expiry), nonce: toBigInt(o.nonce) }, fillSig, fillAmt);
-      const rcpt = await tx.wait();
-      const txh = rcpt?.hash || '';
-      try { console.log('[DEBUG] doFill receipt', rcpt); } catch {}
-      try { console.log('[DEBUG] doFill set lastTxHash', txh); } catch {}
-      setLastTxHash(txh);
-      setStatus('Filled. Tx: ' + txh);
-      try {
-        // Push a temporary recent trade entry for immediate link visibility
-        const baseAddr = norm(o.base);
-        const quoteAddr = norm(o.quote);
-        // Approximate fill amounts using requested fill (authoritative values will arrive via WS event)
-        const fb = fillAmt;
-        const fq = (toBigInt(fb) * toBigInt(o.price)) / toBigInt(parseUnits('1', 18));
-        setRecentFills(prev => [
-          { op: 'Trade', tx: txh, base: baseAddr, quote: quoteAddr, side: Number(o.side), fillBase: String(fb), fillQuote: String(fq), time: Date.now() },
-          ...prev
-        ].slice(0, 200));
-      } catch {}
-    } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
-  };
-
+  
   const doCancelOrder = async (entry) => {
     try {
       if (!signer) return alert('Connect wallet');
