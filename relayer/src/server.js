@@ -2,10 +2,13 @@ import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
 import { WebSocketServer } from 'ws';
 import { ethers, verifyTypedData, TypedDataEncoder } from 'ethers';
 import pkg from 'pg';
 import { z } from 'zod';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 const { Pool } = pkg;
 
@@ -177,6 +180,16 @@ const app = Fastify({ logger: true });
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 await app.register(cors, { origin: allowedOrigins.length ? allowedOrigins : true });
 await app.register(rateLimit, { max: CONFIG.RATE_LIMIT_MAX, timeWindow: CONFIG.RATE_LIMIT_TIME_WINDOW });
+
+// Static frontend (serve CRA build)
+try {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const clientDir = path.resolve(__dirname, '../../build');
+  await app.register(fastifyStatic, { root: clientDir, prefix: '/' });
+} catch (e) {
+  try { app.log.warn({ err: e?.message || e }, 'Static serving disabled'); } catch {}
+}
 
 const wss = new WebSocketServer({ server: app.server });
 
@@ -701,6 +714,15 @@ app.get('/market-stats', async (req, reply) => {
   } catch (e) {
     req.log.error(e);
     return reply.code(500).send({ error: 'failed' });
+  }
+});
+
+// Catch-all route for SPA to serve index.html
+app.get('/*', async (_req, reply) => {
+  try {
+    return reply.sendFile('index.html');
+  } catch {
+    return reply.code(404).send({ error: 'not found' });
   }
 });
 
