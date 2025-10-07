@@ -3,20 +3,25 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/rate-limit": "^9.1.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@web3modal/ethers": "^3.5.7",
     "concurrently": "^8.2.2",
-    "ethers": "^6.15.0",
-    "fastify": "^5.0.0",
-    "pg": "^8.11.5",
     "dotenv": "^16.3.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "ethers": "^6.15.0",
+    "fastify": "^4.28.1",
+    "pg": "^8.11.5",
+    "pino": "^9.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
   },
   "scripts": {
     "preinstall": "npm config set legacy-peer-deps true",
@@ -24,8 +29,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node relayer/src/server.js",
-    "executor": "node relayer/src/executor.js",
+    "server": "node -r dotenv/config relayer/src/server.js dotenv_config_path=./relayer/.env",
+    "executor": "node -r dotenv/config relayer/src/executor.js dotenv_config_path=./relayer/.env",
     "start": "concurrently \"npm run server\" \"npm run executor\""
   },
   "eslintConfig": {
