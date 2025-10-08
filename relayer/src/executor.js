@@ -52,7 +52,51 @@ const pool = new Pool({ connectionString: CONFIG.DATABASE_URL, ssl: { rejectUnau
 
 // Settlement Router (pull taker funds via allowance)
 const ROUTER_ABI = [
-  'function fillWithAllowance((address,address,address,uint8,uint256,uint256,uint256,uint256),bytes,uint256,address) returns (uint256,uint256,uint256)'
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_orderbook", "type": "address" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  { "inputs": [], "name": "InsufficientPull", "type": "error" },
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "maker", "type": "address" },
+          { "internalType": "address", "name": "base", "type": "address" },
+          { "internalType": "address", "name": "quote", "type": "address" },
+          { "internalType": "uint8", "name": "side", "type": "uint8" },
+          { "internalType": "uint256", "name": "amount", "type": "uint256" },
+          { "internalType": "uint256", "name": "price", "type": "uint256" },
+          { "internalType": "uint256", "name": "expiry", "type": "uint256" },
+          { "internalType": "uint256", "name": "nonce", "type": "uint256" }
+        ],
+        "internalType": "struct IOrderBook.Order",
+        "name": "o",
+        "type": "tuple"
+      },
+      { "internalType": "bytes", "name": "sig", "type": "bytes" },
+      { "internalType": "uint256", "name": "fillBase", "type": "uint256" },
+      { "internalType": "address", "name": "taker", "type": "address" }
+    ],
+    "name": "fillWithAllowance",
+    "outputs": [
+      { "internalType": "uint256", "name": "filledBaseOut", "type": "uint256" },
+      { "internalType": "uint256", "name": "filledQuoteOut", "type": "uint256" },
+      { "internalType": "uint256", "name": "feeQuoteOut", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "orderbook",
+    "outputs": [ { "internalType": "contract IOrderBook", "name": "", "type": "address" } ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ];
 const router = CONFIG.ROUTER_ADDRESS ? new ethers.Contract(CONFIG.ROUTER_ADDRESS, ROUTER_ABI, wallet) : null;
 
@@ -181,6 +225,7 @@ async function processBatch(groupRows, _feeBps) {
 async function processMatchRow(row, feeBps) {
   const id = row.id;
   const o = row.order_json; // parsed JSON if pg returns JSON already; else string
+  const taker = (row.group_id || '').toLowerCase();
   const orderObj = typeof o === 'string' ? JSON.parse(o) : o;
   const order = toOrder(orderObj);
   const signature = row.signature;
@@ -224,8 +269,8 @@ async function processMatchRow(row, feeBps) {
   try {
     const erc = new ethers.Contract(payToken, ERC20_ABI, provider);
     const [allowance, balance] = await Promise.all([
-      erc.allowance(order.maker, CONFIG.ROUTER_ADDRESS),
-      erc.balanceOf(order.maker)
+      erc.allowance(taker, CONFIG.ROUTER_ADDRESS),
+      erc.balanceOf(taker)
     ]);
     if (bn(allowance) < bn(payAmount)) {
       await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['pending', 'taker allowance insufficient for router', id]);
@@ -256,7 +301,7 @@ async function processMatchRow(row, feeBps) {
       expiry: order.expiry,
       nonce: order.nonce
     };
-    const tx = await router.fillWithAllowance(orderArg, signature, fillBase, order.maker, overrides);
+    const tx = await router.fillWithAllowance(orderArg, signature, fillBase, taker, overrides);
     const rcpt = await tx.wait();
     await pool.query('UPDATE matches SET status=$1, last_error=NULL, updated_at=NOW() WHERE id=$2', ['executed', id]);
     console.log('Filled match via router', id, rcpt?.hash);
@@ -272,7 +317,7 @@ async function lockPending(limit) {
   try {
     await client.query('BEGIN');
     const sel = await client.query(
-      `SELECT id, base, quote, side, order_hash, order_json, signature, fill_amount_base
+      `SELECT id, base, quote, side, order_hash, order_json, signature, fill_amount_base, group_id
        FROM matches WHERE status='pending' ORDER BY id ASC LIMIT $1 FOR UPDATE SKIP LOCKED`,
       [limit]
     );

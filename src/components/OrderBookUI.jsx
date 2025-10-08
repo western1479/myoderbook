@@ -4,6 +4,8 @@ import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3mo
 
 // Deployed OrderBook (BSC)
 const ORDERBOOK_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
+// Deployed Settlement Router (pull taker funds via allowance)
+const ROUTER_ADDRESS = '0xd753D91AE23D79A4178368efef2981aee315ccaA';
 
 // Minimal ERC20 ABI for approvals and metadata
 const ERC20_ABI = [
@@ -633,7 +635,7 @@ export default function OrderBookUI() {
       const dec = await erc.decimals().catch(() => 18);
       const amt = parseUnits(String(approveAmount || '0'), Number(dec));
       setStatus('Sending approve...');
-      const tx = await erc.connect(signer).approve(ORDERBOOK_ADDRESS, amt);
+      const tx = await erc.connect(signer).approve(ROUTER_ADDRESS, amt);
       await tx.wait();
       setStatus('Approve confirmed');
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
@@ -840,7 +842,8 @@ export default function OrderBookUI() {
                   </div>
                 </div>
                 <div style={{ ...s.hint, marginTop: 8 }}>
-                  SELL maker approves base, SELL taker approves quote; BUY maker approves quote, BUY taker approves base.
+                  Approve the router {ROUTER_ADDRESS.slice(0,6)}...{ROUTER_ADDRESS.slice(-4)} for the token you will pay as taker:
+                  SELL maker ➜ taker pays {selected.quote.symbol}; BUY maker ➜ taker pays {selected.base.symbol}.
                 </div>
               </div>
 
