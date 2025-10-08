@@ -815,14 +815,7 @@ export default function OrderBookUI() {
                   </div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button style={{ ...s.button, ...s.buttonPrimary }} onClick={signOrder} disabled={!account}>Place Order (Sign)</button>
-                  {signedOrder && (
-                    <>
-                      <button style={s.button} onClick={() => copy(JSON.stringify(signedOrder.order, (k,v)=> typeof v === 'bigint' ? v.toString() : v))}>Copy Order JSON</button>
-                      <button style={s.button} onClick={() => copy(signedOrder.signature)}>Copy Signature</button>
-                      <button style={s.button} onClick={() => copy(JSON.stringify({ order: JSON.parse(JSON.stringify(signedOrder.order, (k,v)=> typeof v === 'bigint' ? v.toString() : v)), signature: signedOrder.signature }))}>Copy Order + Signature</button>
-                    </>
-                  )}
+                  <button style={{ ...s.button, ...s.buttonPrimary }} onClick={signOrder} disabled={!account}>Place Order</button>
                 </div>
               </div>
 
