@@ -378,8 +378,7 @@ export default function OrderBookUI() {
   const [priceHuman, setPriceHuman] = useState(''); // quote per base
   const [expiryMinutes, setExpiryMinutes] = useState('60');
   const [nonce, setNonce] = useState('1');
-  const [signedOrder, setSignedOrder] = useState(null);
-
+  
   // Approvals / taker
   const [approveTokenAddr, setApproveTokenAddr] = useState('');
   const [approveAmount, setApproveAmount] = useState('');
@@ -592,8 +591,7 @@ export default function OrderBookUI() {
     return () => { try { ws && ws.close(); } catch {} };
   }, [wsUrl, selected, seedOrderbook, setRecentFills, account]);
 
-  const copy = (text) => navigator.clipboard?.writeText(text).catch(()=>{});
-
+  
   // Place (sign) order
   const signOrder = async () => {
     try {
@@ -621,7 +619,6 @@ export default function OrderBookUI() {
       try { orderHash = await orderbook.orderHash(order); } catch {}
 
       const entry = { id: orderHash, order, signature, baseSymbol: selected.base.symbol, quoteSymbol: selected.quote.symbol, baseDecimals: selected.base.decimals, quoteDecimals: selected.quote.decimals, createdAt: Date.now() };
-      setSignedOrder(entry);
       setMyOrders((prev) => [entry, ...prev].slice(0, 500));
       setStatus('Order signed');
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
