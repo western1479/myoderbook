@@ -285,6 +285,39 @@ async function processMatchRow(row, feeBps) {
     return;
   }
 
+  // Preflight maker allowance and balance to OrderBook (required by on-chain settlement)
+  try {
+    const makerPayToken = order.side === 0 ? order.base : order.quote;
+    const qAmt = quoteFor(fillBase, order.price);
+    const makerPayAmount = order.side === 0
+      ? fillBase // SELL maker pays base
+      : (qAmt + (qAmt * bn(feeBps)) / bn(10000)); // BUY maker pays quote + fee
+
+    const mer = new ethers.Contract(makerPayToken, ERC20_ABI, provider);
+    const [mAllow, mBal] = await Promise.all([
+      mer.allowance(order.maker, CONFIG.ORDERBOOK_ADDRESS),
+      mer.balanceOf(order.maker)
+    ]);
+
+    if (bn(mAllow) < bn(makerPayAmount)) {
+      await pool.query(
+        'UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3',
+        ['pending', 'maker allowance insufficient for orderbook', id]
+      );
+      return;
+    }
+    if (bn(mBal) < bn(makerPayAmount)) {
+      await pool.query(
+        'UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3',
+        ['pending', 'maker insufficient balance', id]
+      );
+      return;
+    }
+  } catch (e) {
+    await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['pending', 'maker preflight failed', id]);
+    return;
+  }
+
   // Optional gas price override
   const overrides = {};
   if (CONFIG.GAS_PRICE_GWEI) overrides.gasPrice = ethers.parseUnits(String(CONFIG.GAS_PRICE_GWEI), 'gwei');
