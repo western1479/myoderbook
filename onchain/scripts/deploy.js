@@ -8,8 +8,14 @@ async function main() {
   const orderBook = await OrderBook.deploy();
   await orderBook.waitForDeployment();
 
-  const addr = await orderBook.getAddress();
-  console.log("OrderBook deployed to:", addr);
+  const obAddr = await orderBook.getAddress();
+  console.log("OrderBook deployed to:", obAddr);
+
+  const Router = await hre.ethers.getContractFactory("SettlementRouter");
+  const router = await Router.deploy(obAddr);
+  await router.waitForDeployment();
+  const routerAddr = await router.getAddress();
+  console.log("SettlementRouter deployed to:", routerAddr);
 
   const feeBps = await orderBook.feeBps();
   const feeRecipient = await orderBook.feeRecipient();

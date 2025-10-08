@@ -15,7 +15,8 @@ const CONFIG = {
   MAX_BATCH: Number(process.env.EXECUTOR_MAX_BATCH || 10),
   APPROVE_MAX: process.env.EXECUTOR_APPROVE_MAX !== '0', // set to '0' to disable auto-approve
   GAS_PRICE_GWEI: process.env.EXECUTOR_GAS_PRICE_GWEI ? Number(process.env.EXECUTOR_GAS_PRICE_GWEI) : null,
-  RPC_TIMEOUT_MS: Number(process.env.EXECUTOR_RPC_TIMEOUT_MS || 12000)
+  RPC_TIMEOUT_MS: Number(process.env.EXECUTOR_RPC_TIMEOUT_MS || 12000),
+  ROUTER_ADDRESS: process.env.ROUTER_ADDRESS || ''
 };
 
 if (!CONFIG.ORDERBOOK_ADDRESS || !CONFIG.EXECUTOR_PRIVATE_KEY || !CONFIG.DATABASE_URL) {
@@ -48,6 +49,12 @@ const wallet = new ethers.Wallet(CONFIG.EXECUTOR_PRIVATE_KEY, provider);
 const orderbook = new ethers.Contract(CONFIG.ORDERBOOK_ADDRESS, ORDERBOOK_ABI, wallet);
 
 const pool = new Pool({ connectionString: CONFIG.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
+// Settlement Router (pull taker funds via allowance)
+const ROUTER_ABI = [
+  'function fillWithAllowance((address,address,address,uint8,uint256,uint256,uint256,uint256),bytes,uint256,address) returns (uint256,uint256,uint256)'
+];
+const router = CONFIG.ROUTER_ADDRESS ? new ethers.Contract(CONFIG.ROUTER_ADDRESS, ROUTER_ABI, wallet) : null;
 
 // ------------ Helpers ------------
 const bn = (x) => BigInt(x);
@@ -163,78 +170,11 @@ function payAmountFor(order, fillBase, feeBps) {
   return fillBase;
 }
 
-async function processBatch(groupRows, feeBps) {
+async function processBatch(groupRows, _feeBps) {
   if (!groupRows || groupRows.length === 0) return;
-  // Coalesce by order_hash so each order is filled once per tx
-  const byOrder = new Map(); // order_hash -> { order, tuple, sig, fill: bigint, ids: number[] }
-  let payToken = null;
-
+  // Router-based settlement: process individually (uses user's allowance)
   for (const row of groupRows) {
-    try {
-      const o = typeof row.order_json === 'string' ? JSON.parse(row.order_json) : row.order_json;
-      const order = toOrder(o);
-      const rv = await revalidate(order, row.fill_amount_base);
-      if (!rv.ok) {
-        await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', rv.reason, row.id]);
-        continue;
-      }
-      const fillBase = rv.fill;
-      if (fillBase <= 0n) {
-        await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'zero fill', row.id]);
-        continue;
-      }
-      const key = String(row.order_hash).toLowerCase();
-      if (!byOrder.has(key)) {
-        byOrder.set(key, { order, tuple: toTupleFromOrder(order), sig: row.signature, fill: 0n, ids: [] });
-      }
-      const agg = byOrder.get(key);
-      agg.fill += fillBase;
-      agg.ids.push(row.id);
-      const pt = payTokenForSide(order);
-      if (!payToken) payToken = pt;
-    } catch (e) {
-      await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', e?.message || 'parse/validate error', row.id]);
-    }
-  }
-
-  const entries = Array.from(byOrder.values());
-  if (entries.length === 0) return;
-
-  // Compute total pay amount
-  let totalPay = 0n;
-  for (const it of entries) {
-    totalPay += payAmountFor(it.order, it.fill, feeBps);
-  }
-
-  // Ensure allowance and balance once for the batch
-  const owner = await wallet.getAddress();
-  const okAllowance = await ensureAllowance(payToken, owner, CONFIG.ORDERBOOK_ADDRESS, totalPay);
-  if (!okAllowance) {
-    for (const it of entries) for (const id of it.ids) await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'approve failed', id]);
-    return;
-  }
-  const okBal = await hasBalance(payToken, owner, totalPay);
-  if (!okBal) {
-    for (const it of entries) for (const id of it.ids) await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'insufficient balance', id]);
-    return;
-  }
-
-  const overrides = {};
-  if (CONFIG.GAS_PRICE_GWEI) overrides.gasPrice = ethers.parseUnits(String(CONFIG.GAS_PRICE_GWEI), 'gwei');
-
-  try {
-    // Single fillOrders call, one entry per order
-    const tuples = entries.map(e => e.tuple);
-    const sigs = entries.map(e => e.sig);
-    const fills = entries.map(e => e.fill);
-    const tx = await orderbook.fillOrders(tuples, sigs, fills, overrides);
-    const rcpt = await tx.wait();
-    for (const it of entries) for (const id of it.ids) await pool.query('UPDATE matches SET status=$1, last_error=NULL, updated_at=NOW() WHERE id=$2', ['executed', id]);
-    console.log(`Filled batch orders=${entries.length}`, rcpt?.hash);
-  } catch (e) {
-    const err = e?.shortMessage || e?.message || 'tx error';
-    console.error('fillOrders error', err);
-    for (const it of entries) for (const id of it.ids) await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', err, id]);
+    try { await processMatchRow(row, _feeBps); } catch {}
   }
 }
 
@@ -275,16 +215,28 @@ async function processMatchRow(row, feeBps) {
     payAmount = fillBase;
   }
 
-  // Check allowance and balance
-  const owner = await wallet.getAddress();
-  const okAllowance = await ensureAllowance(payToken, owner, CONFIG.ORDERBOOK_ADDRESS, payAmount);
-  if (!okAllowance) {
-    await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'approve failed', id]);
+  // Router-based settlement: taker is the order.maker
+  if (!router) {
+    await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'router not configured', id]);
     return;
   }
-  const okBal = await hasBalance(payToken, owner, payAmount);
-  if (!okBal) {
-    await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', 'insufficient balance', id]);
+  // Preflight taker allowance and balance
+  try {
+    const erc = new ethers.Contract(payToken, ERC20_ABI, provider);
+    const [allowance, balance] = await Promise.all([
+      erc.allowance(order.maker, CONFIG.ROUTER_ADDRESS),
+      erc.balanceOf(order.maker)
+    ]);
+    if (bn(allowance) < bn(payAmount)) {
+      await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['pending', 'taker allowance insufficient for router', id]);
+      return;
+    }
+    if (bn(balance) < bn(payAmount)) {
+      await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['pending', 'taker insufficient balance', id]);
+      return;
+    }
+  } catch (e) {
+    await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['pending', 'preflight failed', id]);
     return;
   }
 
@@ -292,14 +244,24 @@ async function processMatchRow(row, feeBps) {
   const overrides = {};
   if (CONFIG.GAS_PRICE_GWEI) overrides.gasPrice = ethers.parseUnits(String(CONFIG.GAS_PRICE_GWEI), 'gwei');
 
-  // Submit fillOrder
+  // Submit via router
   try {
-    const tx = await orderbook.fillOrder(toTupleFromOrder(order), signature, fillBase, overrides);
+    const orderArg = {
+      maker: order.maker,
+      base: order.base,
+      quote: order.quote,
+      side: Number(order.side),
+      amount: order.amount,
+      price: order.price,
+      expiry: order.expiry,
+      nonce: order.nonce
+    };
+    const tx = await router.fillWithAllowance(orderArg, signature, fillBase, order.maker, overrides);
     const rcpt = await tx.wait();
     await pool.query('UPDATE matches SET status=$1, last_error=NULL, updated_at=NOW() WHERE id=$2', ['executed', id]);
-    console.log('Filled match', id, rcpt?.hash);
+    console.log('Filled match via router', id, rcpt?.hash);
   } catch (e) {
-    console.error('fillOrder error', e?.shortMessage || e?.message || e);
+    console.error('router fill error', e?.shortMessage || e?.message || e);
     await pool.query('UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3', ['failed', e?.shortMessage || e?.message || 'tx error', id]);
   }
 }

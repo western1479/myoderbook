@@ -410,12 +410,12 @@ async function getBestOpposite(base, quote, side) {
   // side: maker side of the new order; opposite side to query
   const oppSide = side === 0 ? 1 : 0;
   const text = oppSide === 1
-    ? `SELECT order_hash, side, amount, price, remaining, signature, maker
+    ? `SELECT order_hash, maker, base, quote, side, amount, price, expiry, nonce, remaining, signature
        FROM orders
        WHERE base=$1 AND quote=$2 AND status='active' AND expiry > extract(epoch from now()) AND side=1
        ORDER BY price DESC, created_at ASC
        LIMIT 1`
-    : `SELECT order_hash, side, amount, price, remaining, signature, maker
+    : `SELECT order_hash, maker, base, quote, side, amount, price, expiry, nonce, remaining, signature
        FROM orders
        WHERE base=$1 AND quote=$2 AND status='active' AND expiry > extract(epoch from now()) AND side=0
        ORDER BY price ASC, created_at ASC
@@ -439,23 +439,53 @@ async function priceCrosses(newOrder, bestOpp) {
   } catch { return false; }
 }
 
-async function tryEnqueueMatch(newOrder, signature) {
+async function tryEnqueueMatch(newOrder, _signature) {
   try {
-    // Compute new order hash once
-    const h = (await computeOrderHash(newOrder)).toLowerCase();
+    // Remaining amount for the new order
     let remainingNew;
     try { remainingNew = BigInt(newOrder.amount ?? '0'); } catch { remainingNew = 0n; }
     if (remainingNew <= 0n) return;
 
-    // Signal: ensure price crosses once, then fill entire maker order in a single execution
+    // Ensure price crosses and get best opposite maker order
     const bestOpp = await getBestOpposite(newOrder.base, newOrder.quote, Number(newOrder.side));
     const crosses = await priceCrosses(newOrder, bestOpp);
-    if (!crosses) return;
+    if (!crosses || !bestOpp) return;
 
+    // Build opposite maker order struct (from DB row)
+    const oppOrder = {
+      maker: String(bestOpp.maker).toLowerCase(),
+      base: String(bestOpp.base).toLowerCase(),
+      quote: String(bestOpp.quote).toLowerCase(),
+      side: Number(bestOpp.side),
+      amount: String(bestOpp.amount),
+      price: String(bestOpp.price),
+      expiry: String(bestOpp.expiry),
+      nonce: String(bestOpp.nonce)
+    };
+
+    // Compute hash of opposite maker order
+    const oppHash = (await computeOrderHash(oppOrder)).toLowerCase();
+
+    // Fill amount is the minimum of both sides' remaining
+    let remainingOpp;
+    try { remainingOpp = BigInt(bestOpp.remaining ?? '0'); } catch { remainingOpp = 0n; }
+    const fillBase = remainingNew < remainingOpp ? remainingNew : remainingOpp;
+    if (fillBase <= 0n) return;
+
+    // Insert match: order to fill is the opposite maker order; taker is the new order maker (store in group_id)
     await pool.query(
       `INSERT INTO matches(base,quote,side,order_hash,order_json,signature,fill_amount_base,status,group_id,attempts)
-       VALUES($1,$2,$3,$4,$5,$6,$7,'pending',NULL,0)`,
-      [ newOrder.base, newOrder.quote, Number(newOrder.side), h, newOrder, signature, String(remainingNew) ]
+       VALUES($1,$2,$3,$4,$5,$6,$7,'pending',$8,0)`,
+      [
+        oppOrder.base,
+        oppOrder.quote,
+        oppOrder.side,
+        oppHash,
+        oppOrder,
+        bestOpp.signature,
+        String(fillBase),
+        String(newOrder.maker).toLowerCase()
+      ]
     );
   } catch (e) {
     console.error('tryEnqueueMatch error', e);
