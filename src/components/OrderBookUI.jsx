@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { BrowserProvider, Contract, parseUnits, formatUnits, toBigInt, getAddress } from 'ethers';
 import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react';
 
-// Deployed OrderBook (BSC)
-const ORDERBOOK_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
+// Deployed CookBook (BSC)
+const CookBook_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
 // Deployed Settlement Router (pull taker funds via allowance)
 const ROUTER_ADDRESS = '0xd753D91AE23D79A4178368efef2981aee315ccaA';
 
@@ -16,8 +16,8 @@ const ERC20_ABI = [
   'function balanceOf(address) view returns (uint256)'
 ];
 
-// OrderBook ABI (provided)
-const ORDERBOOK_ABI = [
+// CookBook ABI (provided)
+const CookBook_ABI = [
   { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
   { "inputs": [], "name": "InvalidShortString", "type": "error" },
   { "inputs": [{ "internalType": "string", "name": "str", "type": "string" }], "name": "StringTooLong", "type": "error" },
@@ -35,13 +35,13 @@ const ORDERBOOK_ABI = [
   { "inputs": [], "name": "BPS_DENOMINATOR", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "ORDER_TYPEHASH", "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "PRICE_DECIMALS", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct OrderBook.Order", "name": "o", "type": "tuple" }], "name": "cancelOrder", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order", "name": "o", "type": "tuple" }], "name": "cancelOrder", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "internalType": "uint256", "name": "newMinNonce", "type": "uint256" }], "name": "cancelUpTo", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [], "name": "eip712Domain", "outputs": [{ "internalType": "bytes1", "name": "fields", "type": "bytes1" }, { "internalType": "string", "name": "name", "type": "string" }, { "internalType": "string", "name": "version", "type": "string" }, { "internalType": "uint256", "name": "chainId", "type": "uint256" }, { "internalType": "address", "name": "verifyingContract", "type": "address" }, { "internalType": "bytes32", "name": "salt", "type": "bytes32" }, { "internalType": "uint256[]", "name": "extensions", "type": "uint256[]" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "feeBps", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "feeRecipient", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct OrderBook.Order", "name": "o", "type": "tuple" }, { "internalType": "bytes", "name": "sig", "type": "bytes" }, { "internalType": "uint256", "name": "fillAmountBase", "type": "uint256" }], "name": "fillOrder", "outputs": [{ "internalType": "uint256", "name": "filledBaseOut", "type": "uint256" }, { "internalType": "uint256", "name": "filledQuoteOut", "type": "uint256" }, { "internalType": "uint256", "name": "feeQuoteOut", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct OrderBook.Order[]", "name": "orders", "type": "tuple[]" }, { "internalType": "bytes[]", "name": "sigs", "type": "bytes[]" }, { "internalType": "uint256[]", "name": "fillAmountsBase", "type": "uint256[]" }], "name": "fillOrders", "outputs": [{ "internalType": "uint256", "name": "totalBase", "type": "uint256" }, { "internalType": "uint256", "name": "totalQuote", "type": "uint256" }, { "internalType": "uint256", "name": "totalFee", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order", "name": "o", "type": "tuple" }, { "internalType": "bytes", "name": "sig", "type": "bytes" }, { "internalType": "uint256", "name": "fillAmountBase", "type": "uint256" }], "name": "fillOrder", "outputs": [{ "internalType": "uint256", "name": "filledBaseOut", "type": "uint256" }, { "internalType": "uint256", "name": "filledQuoteOut", "type": "uint256" }, { "internalType": "uint256", "name": "feeQuoteOut", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order[]", "name": "orders", "type": "tuple[]" }, { "internalType": "bytes[]", "name": "sigs", "type": "bytes[]" }, { "internalType": "uint256[]", "name": "fillAmountsBase", "type": "uint256[]" }], "name": "fillOrders", "outputs": [{ "internalType": "uint256", "name": "totalBase", "type": "uint256" }, { "internalType": "uint256", "name": "totalQuote", "type": "uint256" }, { "internalType": "uint256", "name": "totalFee", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }], "name": "pairKey", "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }], "stateMutability": "pure", "type": "function" },
 ];
 
@@ -266,7 +266,7 @@ function GeckoTerminalChart({ baseAddress, poolId, height = 380 }) {
   );
 }
 
-function OrderBookTables({ bids, asks, baseSymbol, quoteSymbol, baseDecimals, s, isMobile, twoCols = false }) {
+function CookBookTables({ bids, asks, baseSymbol, quoteSymbol, baseDecimals, s, isMobile, twoCols = false }) {
   const fmt = (x, d=baseDecimals) => {
     try { return formatUnits(x, d); } catch { return String(x); }
   };
@@ -341,7 +341,7 @@ function useLocalStorage(key, initial) {
   return [val, setVal];
 }
 
-export default function OrderBookUI() {
+export default function CookBookUI() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [account, setAccount] = useState('');
@@ -388,12 +388,12 @@ export default function OrderBookUI() {
 
   const [status, setStatus] = useState('');
   const [lastTxHash, setLastTxHash] = useState('');
-  const [recentFills, setRecentFills] = useLocalStorage('orderbook:recentFills', []);
-  const [myOrders, setMyOrders] = useLocalStorage('orderbook:myOrders', []);
+  const [recentFills, setRecentFills] = useLocalStorage('CookBook:recentFills', []);
+  const [myOrders, setMyOrders] = useLocalStorage('CookBook:myOrders', []);
 
-  const orderbook = useMemo(() => {
+  const CookBook = useMemo(() => {
     const p = signer ?? provider;
-    return p ? new Contract(ORDERBOOK_ADDRESS, ORDERBOOK_ABI, p) : null;
+    return p ? new Contract(CookBook_ADDRESS, CookBook_ABI, p) : null;
   }, [provider, signer]);
 
   // Wallet setup
@@ -537,13 +537,13 @@ export default function OrderBookUI() {
     return () => { if (timer) clearTimeout(timer); };
   }, [httpUrl]);
 
-  // Orderbook and trades
+  // CookBook and trades
   const [bids, setBids] = useState([]);
   const [asks, setAsks] = useState([]);
 
-  const seedOrderbook = useCallback(async () => {
+  const seedCookBook = useCallback(async () => {
     try {
-      const res = await fetch(`${httpUrl}/orderbook?base=${selected.base.address}&quote=${selected.quote.address}`);
+      const res = await fetch(`${httpUrl}/CookBook?base=${selected.base.address}&quote=${selected.quote.address}`);
       const data = await res.json();
       const filterActive = (arr) => (Array.isArray(arr) ? arr.filter(r => { try { return toBigInt(r.remaining ?? r.amount ?? '0') > toBigInt(0); } catch { return true; } }) : []);
       setBids(filterActive(data.bids));
@@ -551,7 +551,7 @@ export default function OrderBookUI() {
     } catch (e) { console.error(e); }
   }, [httpUrl, selected]);
 
-  useEffect(() => { seedOrderbook(); }, [seedOrderbook]);
+  useEffect(() => { seedCookBook(); }, [seedCookBook]);
 
   useEffect(() => {
     let ws;
@@ -562,7 +562,7 @@ export default function OrderBookUI() {
         try {
           const msg = JSON.parse(ev.data);
           if (msg.op === 'OrderAdded' || msg.op === 'OrderUpdated' || msg.op === 'OrderRemoved') {
-            seedOrderbook();
+            seedCookBook();
           } else if (msg.op === 'Trade') {
             const txh = msg.tx || msg.transactionHash || msg.hash || (msg.transaction && msg.transaction.hash);
             setRecentFills((prev) => [ { ...msg, tx: txh, base: msg.base || selected.base.address, quote: msg.quote || selected.quote.address, time: msg.time || Date.now() }, ...prev ].slice(0, 200));
@@ -589,7 +589,7 @@ export default function OrderBookUI() {
       };
     } catch (e) { console.error(e); }
     return () => { try { ws && ws.close(); } catch {} };
-  }, [wsUrl, selected, seedOrderbook, setRecentFills, account]);
+  }, [wsUrl, selected, seedCookBook, setRecentFills, account]);
 
   
   // Place (sign) order
@@ -601,7 +601,7 @@ export default function OrderBookUI() {
       const exp = Math.floor(Date.now() / 1000) + Math.max(1, parseInt(expiryMinutes || '0', 10)) * 60;
 
       const order = { maker: norm(account), base: norm(selected.base.address), quote: norm(selected.quote.address), side: Number(side), amount: amt, price: px, expiry: toBigInt(exp), nonce: toBigInt(nonce || '0') };
-      const domain = { name: 'OrderBook', version: '1', chainId: toBigInt(chainId), verifyingContract: norm(ORDERBOOK_ADDRESS) };
+      const domain = { name: 'CookBook', version: '1', chainId: toBigInt(chainId), verifyingContract: norm(CookBook_ADDRESS) };
       const types = { Order: [ { name: 'maker', type: 'address' }, { name: 'base', type: 'address' }, { name: 'quote', type: 'address' }, { name: 'side', type: 'uint8' }, { name: 'amount', type: 'uint256' }, { name: 'price', type: 'uint256' }, { name: 'expiry', type: 'uint256' }, { name: 'nonce', type: 'uint256' } ] };
 
       setStatus('Signing EIP-712 order...');
@@ -612,11 +612,11 @@ export default function OrderBookUI() {
         const res = await fetch(`${httpUrl}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: wire, signature }) });
         if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || 'relayer rejected order'); }
         setStatus('Order submitted to relayer');
-        try { await seedOrderbook(); } catch {}
+        try { await seedCookBook(); } catch {}
       } catch (e) { console.error(e); setStatus('Relayer submit error: ' + (e?.message || '')); }
 
       let orderHash = '0x';
-      try { orderHash = await orderbook.orderHash(order); } catch {}
+      try { orderHash = await CookBook.orderHash(order); } catch {}
 
       const entry = { id: orderHash, order, signature, baseSymbol: selected.base.symbol, quoteSymbol: selected.quote.symbol, baseDecimals: selected.base.decimals, quoteDecimals: selected.quote.decimals, createdAt: Date.now() };
       setMyOrders((prev) => [entry, ...prev].slice(0, 500));
@@ -644,10 +644,10 @@ export default function OrderBookUI() {
       if (!signer) return alert('Connect wallet');
       if (!entry?.order) return alert('Missing order');
       setStatus('Sending cancelOrder...');
-      const tx = await orderbook.connect(signer).cancelOrder({ maker: norm(entry.order.maker), base: norm(entry.order.base), quote: norm(entry.order.quote), side: Number(entry.order.side), amount: toBigInt(entry.order.amount), price: toBigInt(entry.order.price), expiry: toBigInt(entry.order.expiry), nonce: toBigInt(entry.order.nonce) });
+      const tx = await CookBook.connect(signer).cancelOrder({ maker: norm(entry.order.maker), base: norm(entry.order.base), quote: norm(entry.order.quote), side: Number(entry.order.side), amount: toBigInt(entry.order.amount), price: toBigInt(entry.order.price), expiry: toBigInt(entry.order.expiry), nonce: toBigInt(entry.order.nonce) });
       const rcpt = await tx.wait();
       setStatus('Cancelled. Tx: ' + rcpt?.hash);
-      try { await seedOrderbook(); } catch {}
+      try { await seedCookBook(); } catch {}
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
@@ -657,10 +657,10 @@ export default function OrderBookUI() {
       const n = String(cancelUpToNonce || '');
       if (!n) return alert('Enter nonce');
       setStatus('Sending cancelUpTo...');
-      const tx = await orderbook.connect(signer).cancelUpTo(toBigInt(n));
+      const tx = await CookBook.connect(signer).cancelUpTo(toBigInt(n));
       const rcpt = await tx.wait();
       setStatus('CancelUpTo confirmed. Tx: ' + rcpt?.hash);
-      try { await seedOrderbook(); } catch {}
+      try { await seedCookBook(); } catch {}
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
@@ -694,7 +694,7 @@ export default function OrderBookUI() {
         <div style={s.navbar}>
           <div style={s.brand}>
             <span style={s.brandBadge} />
-            OrderBook
+            CookBook
           </div>
           <div style={s.navbarRight}>
             <button style={s.button} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -731,7 +731,7 @@ export default function OrderBookUI() {
                 <GeckoTerminalChart baseAddress={selected.base.address} height={380} />
               </div>
 
-              <OrderBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={false} />
+              <CookBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={false} />
 
               <div style={s.card}>
                 <div style={s.sectionTitle}>Recent Trades — {selected.id}</div>
@@ -909,7 +909,7 @@ export default function OrderBookUI() {
                   {activeTab === 'chart' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <GeckoTerminalChart baseAddress={selected.base.address} height={300} />
-                      <OrderBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={true} twoCols={true} />
+                      <CookBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={true} twoCols={true} />
                     </div>
                   )}
 

@@ -6,7 +6,7 @@ const { Pool } = pkg;
 
 // ------------ Config ------------
 const CONFIG = {
-  ORDERBOOK_ADDRESS: (process.env.ORDERBOOK_ADDRESS || '').toLowerCase(),
+  CookBook_ADDRESS: (process.env.CookBook_ADDRESS || '').toLowerCase(),
   CHAIN_ID: Number(process.env.CHAIN_ID || 56),
   EXECUTOR_RPC_URL: process.env.EXECUTOR_RPC_URL || process.env.BSC_HTTP_URL || process.env.BSC_RPC_URL || 'https://bsc.publicnode.com',
   EXECUTOR_PRIVATE_KEY: process.env.EXECUTOR_PRIVATE_KEY || process.env.PRIVATE_KEY || '',
@@ -19,13 +19,13 @@ const CONFIG = {
   ROUTER_ADDRESS: process.env.ROUTER_ADDRESS || ''
 };
 
-if (!CONFIG.ORDERBOOK_ADDRESS || !CONFIG.EXECUTOR_PRIVATE_KEY || !CONFIG.DATABASE_URL) {
-  console.error('Missing required env ORDERBOOK_ADDRESS or EXECUTOR_PRIVATE_KEY or DATABASE_URL');
+if (!CONFIG.CookBook_ADDRESS || !CONFIG.EXECUTOR_PRIVATE_KEY || !CONFIG.DATABASE_URL) {
+  console.error('Missing required env CookBook_ADDRESS or EXECUTOR_PRIVATE_KEY or DATABASE_URL');
   process.exit(1);
 }
 
 // ------------ ABIs ------------
-const ORDERBOOK_ABI = [
+const CookBook_ABI = [
   'function feeBps() view returns (uint16)',
   'function tokenAllowed(address) view returns (bool)',
   'function pairKey(address,address) pure returns (bytes32)',
@@ -46,7 +46,7 @@ const ERC20_ABI = [
 // ------------ Setup ------------
 const provider = new ethers.JsonRpcProvider(CONFIG.EXECUTOR_RPC_URL, CONFIG.CHAIN_ID);
 const wallet = new ethers.Wallet(CONFIG.EXECUTOR_PRIVATE_KEY, provider);
-const orderbook = new ethers.Contract(CONFIG.ORDERBOOK_ADDRESS, ORDERBOOK_ABI, wallet);
+const CookBook = new ethers.Contract(CONFIG.CookBook_ADDRESS, CookBook_ABI, wallet);
 
 const pool = new Pool({ connectionString: CONFIG.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
@@ -54,7 +54,7 @@ const pool = new Pool({ connectionString: CONFIG.DATABASE_URL, ssl: { rejectUnau
 const ROUTER_ABI = [
   {
     "inputs": [
-      { "internalType": "address", "name": "_orderbook", "type": "address" }
+      { "internalType": "address", "name": "_CookBook", "type": "address" }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
@@ -73,7 +73,7 @@ const ROUTER_ABI = [
           { "internalType": "uint256", "name": "expiry", "type": "uint256" },
           { "internalType": "uint256", "name": "nonce", "type": "uint256" }
         ],
-        "internalType": "struct IOrderBook.Order",
+        "internalType": "struct ICookBook.Order",
         "name": "o",
         "type": "tuple"
       },
@@ -92,8 +92,8 @@ const ROUTER_ABI = [
   },
   {
     "inputs": [],
-    "name": "orderbook",
-    "outputs": [ { "internalType": "contract IOrderBook", "name": "", "type": "address" } ],
+    "name": "CookBook",
+    "outputs": [ { "internalType": "contract ICookBook", "name": "", "type": "address" } ],
     "stateMutability": "view",
     "type": "function"
   }
@@ -112,7 +112,7 @@ function callWithTimeout(promise, ms, label) {
 }
 
 async function getFeeBps() {
-  try { return await callWithTimeout(orderbook.feeBps(), CONFIG.RPC_TIMEOUT_MS, 'feeBps'); } catch { return 40; }
+  try { return await callWithTimeout(CookBook.feeBps(), CONFIG.RPC_TIMEOUT_MS, 'feeBps'); } catch { return 40; }
 }
 
 function quoteFor(fillBase, price) {
@@ -173,15 +173,15 @@ function toTupleFromOrder(order) {
 
 async function revalidate(order, matchFillBase) {
   // On-chain state checks before sending tx
-  const key = await orderbook.pairKey(order.base, order.quote);
+  const key = await CookBook.pairKey(order.base, order.quote);
   const tuple = toTupleFromOrder(order);
-  const tokB = await callWithTimeout(orderbook.tokenAllowed(order.base), CONFIG.RPC_TIMEOUT_MS, 'tokenAllowed(base)');
-  const tokQ = await callWithTimeout(orderbook.tokenAllowed(order.quote), CONFIG.RPC_TIMEOUT_MS, 'tokenAllowed(quote)');
-  const allowed = await callWithTimeout(orderbook.pairAllowed(key), CONFIG.RPC_TIMEOUT_MS, 'pairAllowed');
-  const minNonce = await callWithTimeout(orderbook.minValidNonce(order.maker), CONFIG.RPC_TIMEOUT_MS, 'minValidNonce');
-  const h = await callWithTimeout(orderbook.orderHash(tuple), CONFIG.RPC_TIMEOUT_MS, 'orderHash');
+  const tokB = await callWithTimeout(CookBook.tokenAllowed(order.base), CONFIG.RPC_TIMEOUT_MS, 'tokenAllowed(base)');
+  const tokQ = await callWithTimeout(CookBook.tokenAllowed(order.quote), CONFIG.RPC_TIMEOUT_MS, 'tokenAllowed(quote)');
+  const allowed = await callWithTimeout(CookBook.pairAllowed(key), CONFIG.RPC_TIMEOUT_MS, 'pairAllowed');
+  const minNonce = await callWithTimeout(CookBook.minValidNonce(order.maker), CONFIG.RPC_TIMEOUT_MS, 'minValidNonce');
+  const h = await callWithTimeout(CookBook.orderHash(tuple), CONFIG.RPC_TIMEOUT_MS, 'orderHash');
   let filled = 0n;
-  try { filled = await callWithTimeout(orderbook.filledBase(h), CONFIG.RPC_TIMEOUT_MS, 'filledBase'); } catch { filled = 0n; }
+  try { filled = await callWithTimeout(CookBook.filledBase(h), CONFIG.RPC_TIMEOUT_MS, 'filledBase'); } catch { filled = 0n; }
   if (!tokB || !tokQ || !allowed) return { ok: false, reason: 'not allowed' };
   if (order.nonce < bn(minNonce)) return { ok: false, reason: 'nonce invalid' };
   if (bn(order.expiry) < bn(Math.floor(Date.now()/1000))) return { ok: false, reason: 'expired' };
@@ -285,7 +285,7 @@ async function processMatchRow(row, feeBps) {
     return;
   }
 
-  // Preflight maker allowance and balance to OrderBook (required by on-chain settlement)
+  // Preflight maker allowance and balance to CookBook (required by on-chain settlement)
   try {
     const makerPayToken = order.side === 0 ? order.base : order.quote;
     const qAmt = quoteFor(fillBase, order.price);
@@ -295,14 +295,14 @@ async function processMatchRow(row, feeBps) {
 
     const mer = new ethers.Contract(makerPayToken, ERC20_ABI, provider);
     const [mAllow, mBal] = await Promise.all([
-      mer.allowance(order.maker, CONFIG.ORDERBOOK_ADDRESS),
+      mer.allowance(order.maker, CONFIG.CookBook_ADDRESS),
       mer.balanceOf(order.maker)
     ]);
 
     if (bn(mAllow) < bn(makerPayAmount)) {
       await pool.query(
         'UPDATE matches SET status=$1, last_error=$2, attempts=attempts+1, updated_at=NOW() WHERE id=$3',
-        ['pending', 'maker allowance insufficient for orderbook', id]
+        ['pending', 'maker allowance insufficient for CookBook', id]
       );
       return;
     }

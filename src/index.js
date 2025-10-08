@@ -18,7 +18,7 @@ const bsc = {
 };
 
 const metadata = {
-  name: 'OrderBook',
+  name: 'CookBook',
   description: 'Hybrid order book dApp',
   url: window.location.origin,
   icons: ['https://avatars.githubusercontent.com/u/37784886?s=200&v=4']

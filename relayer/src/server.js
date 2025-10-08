@@ -17,18 +17,18 @@ const { Pool } = pkg;
 // ---------------------
 const CONFIG = {
   PORT: Number(process.env.PORT || 8080),
-  ORDERBOOK_ADDRESS: (process.env.ORDERBOOK_ADDRESS || '').toLowerCase(),
+  CookBook_ADDRESS: (process.env.CookBook_ADDRESS || '').toLowerCase(),
   CHAIN_ID: Number(process.env.CHAIN_ID || 56),
   BSC_RPC_URL: process.env.BSC_RPC_URL || 'https://bsc.publicnode.com',
   DATABASE_URL: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '',
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX || 300),
   RATE_LIMIT_TIME_WINDOW: process.env.RATE_LIMIT_TIME_WINDOW || '1 minute',
-  DEPLOY_BLOCK: Number(process.env.ORDERBOOK_DEPLOY_BLOCK || 0),
+  DEPLOY_BLOCK: Number(process.env.CookBook_DEPLOY_BLOCK || 0),
   BSC_HTTP_URL: process.env.BSC_HTTP_URL || ''
 };
 
-if (!CONFIG.ORDERBOOK_ADDRESS || !CONFIG.DATABASE_URL) {
-  console.error('Missing required env ORDERBOOK_ADDRESS or DATABASE_URL');
+if (!CONFIG.CookBook_ADDRESS || !CONFIG.DATABASE_URL) {
+  console.error('Missing required env CookBook_ADDRESS or DATABASE_URL');
   process.exit(1);
 }
 
@@ -36,7 +36,7 @@ if (!CONFIG.ORDERBOOK_ADDRESS || !CONFIG.DATABASE_URL) {
 // EIP-712 Domain/Types
 // ---------------------
 const domain = (chainId, verifyingContract) => ({
-  name: 'OrderBook',
+  name: 'CookBook',
   version: '1',
   chainId,
   verifyingContract
@@ -73,7 +73,7 @@ const httpProvider = (CONFIG.BSC_HTTP_URL && CONFIG.BSC_HTTP_URL.startsWith('htt
   ? new ethers.JsonRpcProvider(CONFIG.BSC_HTTP_URL, CONFIG.CHAIN_ID)
   : ((CONFIG.BSC_RPC_URL || '').startsWith('http') ? new ethers.JsonRpcProvider(CONFIG.BSC_RPC_URL, CONFIG.CHAIN_ID) : null);
 
-const ORDERBOOK_ABI = [
+const CookBook_ABI = [
   'function tokenAllowed(address) view returns (bool)',
   'function pairKey(address,address) pure returns (bytes32)',
   'function pairAllowed(bytes32) view returns (bool)',
@@ -91,8 +91,8 @@ const ERC20_ABI = [
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)'
 ];
-const orderbook = new ethers.Contract(CONFIG.ORDERBOOK_ADDRESS, ORDERBOOK_ABI, provider);
-const iface = new ethers.Interface(ORDERBOOK_ABI);
+const CookBook = new ethers.Contract(CONFIG.CookBook_ADDRESS, CookBook_ABI, provider);
+const iface = new ethers.Interface(CookBook_ABI);
 const TOPIC_TOKEN_ALLOWED = ethers.id('TokenAllowedSet(address,bool)');
 const TOPIC_PAIR_ALLOWED = ethers.id('PairAllowedSet(address,address,bool)');
 
@@ -254,29 +254,29 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 async function computeOrderHash(order) {
   // Use contract for canonical hash
   try {
-    return await orderbook.orderHash(order);
+    return await CookBook.orderHash(order);
   } catch (e) {
     // Fallback to pure encoder if needed
-    return TypedDataEncoder.hash(domain(CONFIG.CHAIN_ID, CONFIG.ORDERBOOK_ADDRESS), types, order);
+    return TypedDataEncoder.hash(domain(CONFIG.CHAIN_ID, CONFIG.CookBook_ADDRESS), types, order);
   }
 }
 
 async function onchainValidate(order) {
   const [tokenBase, tokenQuote] = await Promise.all([
-    orderbook.tokenAllowed(order.base),
-    orderbook.tokenAllowed(order.quote)
+    CookBook.tokenAllowed(order.base),
+    CookBook.tokenAllowed(order.quote)
   ]);
   if (!tokenBase || !tokenQuote) return { ok: false, reason: 'token not allowed' };
-  const key = await orderbook.pairKey(order.base, order.quote);
-  const allowed = await orderbook.pairAllowed(key);
+  const key = await CookBook.pairKey(order.base, order.quote);
+  const allowed = await CookBook.pairAllowed(key);
   if (!allowed) return { ok: false, reason: 'pair not allowed' };
   if (bn(order.expiry) < BigInt(nowSec())) return { ok: false, reason: 'expired' };
   if (!(order.side === 0 || order.side === 1)) return { ok: false, reason: 'bad side' };
   if (bn(order.amount) <= 0n || bn(order.price) <= 0n) return { ok: false, reason: 'bad amount/price' };
-  const min = await orderbook.minValidNonce(order.maker);
+  const min = await CookBook.minValidNonce(order.maker);
   if (bn(order.nonce) < bn(min)) return { ok: false, reason: 'nonce invalid' };
   const h = await computeOrderHash(order);
-  const filled = await orderbook.filledBase(h);
+  const filled = await CookBook.filledBase(h);
   if (bn(filled) >= bn(order.amount)) return { ok: false, reason: 'fully filled' };
   return { ok: true, hash: h };
 }
@@ -332,7 +332,7 @@ async function backfillAllowlist() {
       // TokenAllowedSet
       let tokenLogs = [];
       try {
-        tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.ORDERBOOK_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to });
+        tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to });
       } catch (e) {
         console.error('backfill token logs error', e?.message || e);
       }
@@ -349,7 +349,7 @@ async function backfillAllowlist() {
       // PairAllowedSet
       let pairLogs = [];
       try {
-        pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.ORDERBOOK_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to });
+        pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to });
       } catch (e) {
         console.error('backfill pair logs error', e?.message || e);
       }
@@ -384,12 +384,12 @@ function startAllowlistPoller() {
       while (from <= current) {
         const to = Math.min(current, from + step);
         let tokenLogs = [];
-        try { tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.ORDERBOOK_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll token logs error', e?.message || e); }
+        try { tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll token logs error', e?.message || e); }
         for (const log of tokenLogs) {
           try { const p = iface.parseLog(log); if (p?.name === 'TokenAllowedSet') await setTokenAllowedDB(p.args[0], p.args[1]); } catch {}
         }
         let pairLogs = [];
-        try { pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.ORDERBOOK_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll pair logs error', e?.message || e); }
+        try { pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll pair logs error', e?.message || e); }
         for (const log of pairLogs) {
           try { const p = iface.parseLog(log); if (p?.name === 'PairAllowedSet') { await Promise.all([ensureTokenMeta(p.args[0]), ensureTokenMeta(p.args[1])]); await setPairAllowedDB(p.args[0], p.args[1], p.args[2]); } } catch {}
         }
@@ -501,7 +501,7 @@ app.post('/orders', async (req, reply) => {
     const order = normalizeOrder(body.order);
 
     // Verify signature
-    const recovered = verifyTypedData(domain(CONFIG.CHAIN_ID, CONFIG.ORDERBOOK_ADDRESS), types, order, body.signature);
+    const recovered = verifyTypedData(domain(CONFIG.CHAIN_ID, CONFIG.CookBook_ADDRESS), types, order, body.signature);
     if (recovered.toLowerCase() !== order.maker.toLowerCase()) {
       return reply.code(400).send({ error: 'bad signature' });
     }
@@ -545,7 +545,7 @@ app.post('/orders', async (req, reply) => {
   }
 });
 
-app.get('/orderbook', async (req, reply) => {
+app.get('/CookBook', async (req, reply) => {
   const q = req.query || {};
   const base = String(q.base || '').toLowerCase();
   const quote = String(q.quote || '').toLowerCase();
@@ -601,7 +601,7 @@ app.get('/markets', async (_req, reply) => {
 // ---------------------
 // Event indexer
 // ---------------------
-orderbook.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, fillBase, fillQuote, feeQuote, feePayer, evt) => {
+CookBook.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, fillBase, fillQuote, feeQuote, feePayer, evt) => {
   try {
     const h = String(orderHash).toLowerCase();
     // decrement remaining
@@ -626,7 +626,7 @@ orderbook.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, f
   } catch (e) { console.error('OrderFilled handling error', e); }
 });
 
-orderbook.on('OrderCancelled', async (orderHash, maker) => {
+CookBook.on('OrderCancelled', async (orderHash, maker) => {
   try {
     const h = String(orderHash).toLowerCase();
     const { rows } = await pool.query('SELECT base,quote FROM orders WHERE order_hash=$1', [h]);
@@ -638,7 +638,7 @@ orderbook.on('OrderCancelled', async (orderHash, maker) => {
   } catch (e) { console.error('OrderCancelled handling error', e); }
 });
 
-orderbook.on('CancelUpTo', async (maker, newMin) => {
+CookBook.on('CancelUpTo', async (maker, newMin) => {
   try {
     const m = String(maker).toLowerCase();
     const { rows } = await pool.query('SELECT order_hash, base, quote FROM orders WHERE maker=$1 AND nonce < $2 AND status=\'active\'', [m, String(newMin)]);
@@ -651,13 +651,13 @@ orderbook.on('CancelUpTo', async (maker, newMin) => {
 });
 
 // Allowlist via live events only (no polling)
-orderbook.on('TokenAllowedSet', async (token, allowed) => {
+CookBook.on('TokenAllowedSet', async (token, allowed) => {
   try {
     await setTokenAllowedDB(token, allowed);
   } catch (e) { console.error('TokenAllowedSet handling error', e); }
 });
 
-orderbook.on('PairAllowedSet', async (base, quote, allowed) => {
+CookBook.on('PairAllowedSet', async (base, quote, allowed) => {
   try {
     await Promise.all([ensureTokenMeta(base), ensureTokenMeta(quote)]);
     await setPairAllowedDB(base, quote, allowed);

@@ -5,6 +5,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* prevent sideways scroll */
+}
+
+/* Ensure containers don’t exceed viewport width */
+#root, html, body {
+  max-width: 100%;
 }
 
 code {
