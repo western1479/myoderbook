@@ -1,6 +1,6 @@
-# OrderBook Relayer (Production-Ready)
+# CookBook Relayer (Production-Ready)
 
-Off-chain relayer/aggregator for your OrderBook. It accepts signed EIP-712 orders, validates against on-chain state, stores them in Postgres, streams a live order book over WebSockets, and indexes on-chain settlement events for consistency.
+Off-chain relayer/aggregator for your CookBook. It accepts signed EIP-712 orders, validates against on-chain state, stores them in Postgres, streams a live order book over WebSockets, and indexes on-chain settlement events for consistency.
 
 ## Features
 - Fastify HTTP server with CORS, rate limiting
@@ -15,7 +15,7 @@ Off-chain relayer/aggregator for your OrderBook. It accepts signed EIP-712 order
 - POST /orders
   - Body: `{ order: {maker,base,quote,side,amount,price,expiry,nonce}, signature }`
   - Response: `{ orderHash }`
-- GET /orderbook?base=0x...&quote=0x...&limit=50
+- GET /CookBook?base=0x...&quote=0x...&limit=50
   - Response: `{ bids: [...], asks: [...] }` (raw orders sorted)
 - WebSocket `/` (same origin) – subscribe by pair
   - Client -> `{ op: "subscribe", base, quote }`
@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` and configure:
 
 ```
 PORT=8080
-ORDERBOOK_ADDRESS=0xc42e757cafa9219716a6b504986005319d6813ea
+CookBook_ADDRESS=0xc42e757cafa9219716a6b504986005319d6813ea
 CHAIN_ID=56
 BSC_RPC_URL=https://bsc.publicnode.com
 DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME
@@ -63,7 +63,7 @@ Server listens on PORT and exposes both HTTP and WS on the same port.
 
 ## Frontend integration
 - Submit orders to POST /orders after signing the EIP-712 Order in the dApp.
-- Seed the book by GET /orderbook?base=&quote=.
+- Seed the book by GET /CookBook?base=&quote=.
 - Open a WS to the relayer and subscribe `{ op: 'subscribe', base, quote }`.
 - Replace local myOrders display with relayer data. Keep on-chain filling flow (fillOrder), relayer will reflect fills via WS.
 

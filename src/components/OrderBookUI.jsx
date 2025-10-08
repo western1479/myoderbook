@@ -128,15 +128,15 @@ const makeStyles = (theme, isMobile) => {
     buttonPrimary: { background: dark ? 'linear-gradient(135deg, #00e0ff 0%, #7b61ff 100%)' : 'linear-gradient(135deg, #0aa7ff 0%, #7b61ff 100%)', border: 'none', boxShadow: dark ? '0 10px 30px rgba(0,224,255,0.22)' : '0 10px 24px rgba(10,167,255,0.22)', color: '#fff' },
     grid3: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr 360px', gap: 16 },
     card: { background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 18, boxShadow: dark ? '0 12px 48px rgba(0,0,0,0.35)' : '0 10px 28px rgba(0,0,0,0.10)', backdropFilter: 'blur(12px)' },
-    sectionTitle: { fontWeight: 800, letterSpacing: 0.3, fontSize: 18, marginBottom: 10, color: colors.title },
+    sectionTitle: { fontWeight: 800, letterSpacing: 0.3, fontSize: isMobile ? 14 : 18, marginBottom: isMobile ? 6 : 10, color: colors.title },
     label: { fontSize: 12, opacity: 0.85, marginBottom: 6, color: colors.hint },
     hint: { fontSize: 12, color: colors.hint },
-    input: { width: '100%', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none' },
-    textarea: { width: '100%', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none', resize: 'vertical' },
-    select: { width: '100%', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none' },
+    input: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none' },
+    textarea: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none', resize: 'vertical' },
+    select: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.text, padding: '10px 12px', borderRadius: 10, outline: 'none' },
     table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0 },
-    th: { textAlign: 'left', fontWeight: 600, fontSize: 13, padding: '8px 6px', color: colors.title, borderBottom: `1px solid ${colors.border}` },
-    td: { fontSize: 13, padding: '8px 6px', borderBottom: `1px solid ${colors.subtleBorder}`, color: colors.text },
+    th: { textAlign: 'left', fontWeight: 600, fontSize: isMobile ? 11 : 13, padding: isMobile ? '4px 3px' : '8px 6px', color: colors.title, borderBottom: `1px solid ${colors.border}` },
+    td: { fontSize: isMobile ? 11 : 13, padding: isMobile ? '4px 3px' : '8px 6px', borderBottom: `1px solid ${colors.subtleBorder}`, color: colors.text },
     status: { marginTop: 12, padding: 10, borderRadius: 10, border: `1px solid ${colors.statusBorder}`, background: dark ? 'linear-gradient(135deg, rgba(0,224,255,0.12), rgba(123,97,255,0.12))' : 'linear-gradient(135deg, rgba(0,150,255,0.10), rgba(150,120,255,0.10))', color: colors.statusText },
     link: { color: colors.link, textDecoration: 'none', fontWeight: 600 },
     // Mobile specific
@@ -910,6 +910,39 @@ export default function CookBookUI() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <GeckoTerminalChart baseAddress={selected.base.address} height={300} />
                       <CookBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={true} twoCols={true} />
+
+                      <div>
+                        <div style={s.sectionTitle}>Recent Trades — {selected.id}</div>
+                        {recentForMarket.length === 0 ? (
+                          <div style={s.hint}>No fills yet.</div>
+                        ) : (
+                          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {recentForMarket.map((e, idx) => {
+                              const price = (() => {
+                                try {
+                                  const fq = parseFloat(formatUnits(e.fillQuote, selected.quote.decimals));
+                                  const fb = parseFloat(formatUnits(e.fillBase, selected.base.decimals));
+                                  return fb > 0 ? (fq / fb).toFixed(6) : '-';
+                                } catch { return '-'; }
+                              })();
+                              const txh = e.tx || e.transactionHash || e.hash || (e.transaction && e.transaction.hash);
+                              return (
+                                <div key={(txh || '') + idx} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 6, alignItems: 'center' }}>
+                                  <div style={{ fontWeight: 700, fontSize: 10, padding: '1px 4px', borderRadius: 5, border: `1px solid ${e.side === 0 ? s.downColor : s.upColor}`, color: e.side === 0 ? s.downColor : s.upColor }}>{e.side === 0 ? 'S' : 'B'}</div>
+                                  <div>
+                                    <div style={{ fontSize: 11, fontWeight: 600 }}>{price} {selected.quote.symbol}</div>
+                                    <div style={{ fontSize: 10, opacity: 0.8 }}>{formatUnits(e.fillBase, selected.base.decimals)} {selected.base.symbol} · {formatUnits(e.fillQuote, selected.quote.decimals)} {selected.quote.symbol}</div>
+                                  </div>
+                                  <div style={{ textAlign: 'right', fontSize: 10 }}>
+                                    <div>{formatTimeAgo(e.time)}</div>
+                                    <div>{txh ? <a href={`${explorerBase}/tx/${txh}`} target="_blank" rel="noreferrer" style={s.link}>{txh.slice(0,8)}...</a> : '-'}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -937,7 +970,7 @@ export default function CookBookUI() {
                         <div style={s.label}>Total (quote preview)</div>
                         <input style={s.input} readOnly value={`${totalQuotePreview} ${selected.quote.symbol}`} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, minWidth: 0 }}>
                         <div>
                           <div style={s.label}>Expiry (minutes)</div>
                           <input style={s.input} value={expiryMinutes} onChange={e=>setExpiryMinutes(e.target.value)} />
@@ -950,7 +983,7 @@ export default function CookBookUI() {
                       <button style={{ ...s.button, ...s.buttonPrimary }} onClick={signOrder} disabled={!account}>Place Order</button>
 
                       <div style={{ ...s.hint, marginTop: 8 }}>Approvals</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0 }}>
                         <input style={s.input} placeholder="Token 0x..." value={approveTokenAddr} onChange={e=>setApproveTokenAddr(e.target.value)} />
                         <input style={s.input} placeholder="Amount (human)" value={approveAmount} onChange={e=>setApproveAmount(e.target.value)} />
                       </div>

@@ -1,9 +1,9 @@
 {
-  "name": "orderbook-relayer",
+  "name": "CookBook-relayer",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Production-grade off-chain relayer/aggregator for OrderBook",
+  "description": "Production-grade off-chain relayer/aggregator for CookBook",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

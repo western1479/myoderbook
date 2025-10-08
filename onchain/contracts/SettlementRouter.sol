@@ -10,7 +10,7 @@ interface IERC20 {
     function decimals() external view returns (uint8);
 }
 
-interface IOrderBook {
+interface ICookBook {
     struct Order {
         address maker;
         address base;
@@ -27,18 +27,18 @@ interface IOrderBook {
 
 /**
  * @title SettlementRouter
- * @notice Pulls the taker payment token via ERC20 allowance from a user wallet, approves OrderBook, and calls fillOrder.
+ * @notice Pulls the taker payment token via ERC20 allowance from a user wallet, approves CookBook, and calls fillOrder.
  *         The router receives the output token (as taker) and immediately forwards it to the user.
  *         This allows a relayer/executor to pay only gas while users provide the tokens via approval.
  */
 contract SettlementRouter {
     error InsufficientPull();
 
-    IOrderBook public immutable orderbook;
+    ICookBook public immutable CookBook;
 
-    constructor(address _orderbook) {
-        require(_orderbook != address(0), "orderbook");
-        orderbook = IOrderBook(_orderbook);
+    constructor(address _CookBook) {
+        require(_CookBook != address(0), "CookBook");
+        CookBook = ICookBook(_CookBook);
     }
 
     function _quoteFor(uint256 fillBase, uint256 price) internal pure returns (uint256) {
@@ -54,7 +54,7 @@ contract SettlementRouter {
      * @param fillBase Amount of base to fill
      * @param taker The real taker address providing tokens via allowance; receives the output tokens
      */
-    function fillWithAllowance(IOrderBook.Order calldata o, bytes calldata sig, uint256 fillBase, address taker) external returns (uint256 filledBaseOut, uint256 filledQuoteOut, uint256 feeQuoteOut) {
+    function fillWithAllowance(ICookBook.Order calldata o, bytes calldata sig, uint256 fillBase, address taker) external returns (uint256 filledBaseOut, uint256 filledQuoteOut, uint256 feeQuoteOut) {
         require(taker != address(0), "taker");
 
         // Determine which token the taker must pay
@@ -62,21 +62,21 @@ contract SettlementRouter {
         address outToken = o.side == 0 ? o.base : o.quote;
 
         // Compute required payment. SELL maker => taker pays quote (+fee); BUY maker => taker pays base
-        uint16 fee = orderbook.feeBps();
+        uint16 fee = CookBook.feeBps();
         uint256 quoteAmt = _quoteFor(fillBase, o.price);
         uint256 payAmount = (o.side == 0)
             ? (quoteAmt + (quoteAmt * fee) / 10000)
             : fillBase;
 
-        // Pull taker funds into router and approve OrderBook
+        // Pull taker funds into router and approve CookBook
         // NOTE: the user must have approved this router for payToken >= payAmount prior to this call.
         if (!IERC20(payToken).transferFrom(taker, address(this), payAmount)) revert InsufficientPull();
         // Approve exact amount (reset to 0 first for some tokens)
-        IERC20(payToken).approve(address(orderbook), 0);
-        IERC20(payToken).approve(address(orderbook), payAmount);
+        IERC20(payToken).approve(address(CookBook), 0);
+        IERC20(payToken).approve(address(CookBook), payAmount);
 
-        // Call OrderBook as taker (msg.sender = router). The OrderBook will use msg.sender for transfers.
-        (filledBaseOut, filledQuoteOut, feeQuoteOut) = orderbook.fillOrder(o, sig, fillBase);
+        // Call CookBook as taker (msg.sender = router). The CookBook will use msg.sender for transfers.
+        (filledBaseOut, filledQuoteOut, feeQuoteOut) = CookBook.fillOrder(o, sig, fillBase);
 
         // Forward the received output tokens to the taker
         uint256 outAmt = (o.side == 0) ? filledBaseOut : filledQuoteOut;

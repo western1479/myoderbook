@@ -5,6 +5,7 @@ import './App.css';
 function Landing({ goTrade, theme, setTheme }) {
   const dark = (theme === 'dark');
   const isMobile = typeof window !== 'undefined' ? window.matchMedia('(max-width: 900px)').matches : false;
+  const [menuOpen, setMenuOpen] = useState(false);
   const colors = dark
     ? {
         pageBg: 'radial-gradient(1200px 600px at 10% -20%, rgba(0,180,255,0.15), transparent),\n                radial-gradient(900px 500px at 90% 0%, rgba(150,0,255,0.15), transparent),\n                linear-gradient(180deg, #0b0f1a 0%, #0a0d16 60%, #090b12 100%)',
@@ -23,7 +24,7 @@ function Landing({ goTrade, theme, setTheme }) {
   const s = {
     page: { minHeight: '100vh', background: colors.pageBg, color: colors.text, overflowX: 'hidden' },
     container: { maxWidth: 1200, margin: '0 auto', padding: isMobile ? '20px 12px' : '32px 16px' },
-    navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 8, flexWrap: 'wrap' },
+    navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 8, flexWrap: isMobile ? 'nowrap' : 'wrap', position: 'relative' },
     brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, letterSpacing: 0.4 },
     brandBadge: { width: 10, height: 10, borderRadius: 12, background: 'linear-gradient(45deg,#00e0ff,#7b61ff)', boxShadow: '0 0 12px #48f' },
     btn: { padding: '12px 16px', borderRadius: 14, border: `1px solid ${colors.border}`, background: colors.button, color: colors.text, cursor: 'pointer' },
@@ -50,12 +51,48 @@ function Landing({ goTrade, theme, setTheme }) {
             <span style={s.brandBadge} />
             CookBook — Trade Any Tokens on BSC
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button style={{ ...s.btn }} onClick={() => setTheme(dark ? 'light' : 'dark')}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
-            <a href="#/docs" style={{ ...s.btn, textDecoration: 'none', display: 'inline-block' }}>Docs</a>
-            <button style={{ ...s.btn }} onClick={() => { window.open('https://bscscan.com/address/0xc42e757Cafa9219716A6b504986005319d6813eA', '_blank'); }}>Contract</button>
-            <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Trade Now</button>
-          </div>
+          {isMobile ? (
+            <div style={{ marginLeft: 'auto', position: 'relative' }}>
+              <button
+                aria-label="Open menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(v => !v)}
+                style={{ ...s.btn, padding: '10px 12px' }}
+              >
+                ☰
+              </button>
+              {menuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 56,
+                    right: 0,
+                    background: colors.cardBg,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 14,
+                    padding: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    zIndex: 50,
+                    minWidth: 180
+                  }}
+                >
+                  <button style={{ ...s.btn, width: '100%', textAlign: 'left' }} onClick={() => { setTheme(dark ? 'light' : 'dark'); setMenuOpen(false); }}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
+                  <a href="#/docs" onClick={() => setMenuOpen(false)} style={{ ...s.btn, textDecoration: 'none', display: 'block' }}>Docs</a>
+                  <button style={{ ...s.btn, width: '100%', textAlign: 'left' }} onClick={() => { window.open('https://bscscan.com/address/0xc42e757Cafa9219716A6b504986005319d6813eA', '_blank'); setMenuOpen(false); }}>Contract</button>
+                  <button style={{ ...s.btn, ...s.btnPrimary, width: '100%', textAlign: 'left' }} onClick={() => { goTrade(); setMenuOpen(false); }}>Trade Now</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button style={{ ...s.btn }} onClick={() => setTheme(dark ? 'light' : 'dark')}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
+              <a href="#/docs" style={{ ...s.btn, textDecoration: 'none', display: 'inline-block' }}>Docs</a>
+              <button style={{ ...s.btn }} onClick={() => { window.open('https://bscscan.com/address/0xc42e757Cafa9219716A6b504986005319d6813eA', '_blank'); }}>Contract</button>
+              <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Trade Now</button>
+            </div>
+          )}
         </div>
 
         <div style={s.hero}>
@@ -120,6 +157,7 @@ function Landing({ goTrade, theme, setTheme }) {
 function Docs({ theme, setTheme, goTrade }) {
   const dark = (theme === 'dark');
   const isMobile = typeof window !== 'undefined' ? window.matchMedia('(max-width: 900px)').matches : false;
+  const [menuOpen, setMenuOpen] = useState(false);
   const colors = dark
     ? {
         pageBg: 'radial-gradient(1200px 600px at 10% -20%, rgba(0,180,255,0.15), transparent),\n                radial-gradient(900px 500px at 90% 0%, rgba(150,0,255,0.15), transparent),\n                linear-gradient(180deg, #0b0f1a 0%, #0a0d16 60%, #090b12 100%)',
@@ -137,7 +175,7 @@ function Docs({ theme, setTheme, goTrade }) {
   const s = {
     page: { minHeight: '100vh', background: colors.pageBg, color: colors.text, overflowX: 'hidden' },
     container: { maxWidth: 1000, margin: '0 auto', padding: isMobile ? '20px 12px' : '32px 16px' },
-    navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 8, flexWrap: 'wrap' },
+    navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 8, flexWrap: isMobile ? 'nowrap' : 'wrap', position: 'relative' },
     brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, letterSpacing: 0.4 },
     brandBadge: { width: 10, height: 10, borderRadius: 12, background: 'linear-gradient(45deg,#00e0ff,#7b61ff)' },
     btn: { padding: '10px 14px', borderRadius: 12, border: `1px solid ${colors.border}`, background: colors.button, color: colors.text, cursor: 'pointer' },
@@ -161,11 +199,46 @@ function Docs({ theme, setTheme, goTrade }) {
             <span style={s.brandBadge} />
             CookBook — Documentation
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button style={s.btn} onClick={() => setTheme(dark ? 'light' : 'dark')}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
-            <a href="#/" style={{ ...s.btn, textDecoration: 'none' }}>Home</a>
-            <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Launch App</button>
-          </div>
+          {isMobile ? (
+            <div style={{ marginLeft: 'auto', position: 'relative' }}>
+              <button
+                aria-label="Open menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(v => !v)}
+                style={{ ...s.btn, padding: '8px 10px' }}
+              >
+                ☰
+              </button>
+              {menuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 56,
+                    right: 0,
+                    background: colors.cardBg,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 14,
+                    padding: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                    zIndex: 50,
+                    minWidth: 160
+                  }}
+                >
+                  <button style={{ ...s.btn, width: '100%', textAlign: 'left' }} onClick={() => { setTheme(dark ? 'light' : 'dark'); setMenuOpen(false); }}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
+                  <a href="#/" onClick={() => setMenuOpen(false)} style={{ ...s.btn, textDecoration: 'none', display: 'block' }}>Home</a>
+                  <button style={{ ...s.btn, ...s.btnPrimary, width: '100%', textAlign: 'left' }} onClick={() => { goTrade(); setMenuOpen(false); }}>Launch App</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button style={s.btn} onClick={() => setTheme(dark ? 'light' : 'dark')}>{dark ? 'Light Theme' : 'Dark Theme'}</button>
+              <a href="#/" style={{ ...s.btn, textDecoration: 'none' }}>Home</a>
+              <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Launch App</button>
+            </div>
+          )}
         </div>
 
         <div style={s.card}>

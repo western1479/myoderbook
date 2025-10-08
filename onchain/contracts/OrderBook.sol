@@ -25,7 +25,7 @@ Price and amount units
 Notes
 - This contract assumes standard ERC20 behavior (non fee-on-transfer). Such tokens are unsupported.
 - Use SafeERC20, check approvals, and ensure users approve this contract to move their tokens.
-- EIP-712 domain: name "OrderBook", version "1".
+- EIP-712 domain: name "CookBook", version "1".
 */
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -36,7 +36,7 @@ import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-contract OrderBook is EIP712, Pausable, ReentrancyGuard, Ownable2Step {
+contract CookBook is EIP712, Pausable, ReentrancyGuard, Ownable2Step {
     using SafeERC20 for IERC20;
 
     // ---------------------------------------------------------------------
@@ -107,7 +107,7 @@ contract OrderBook is EIP712, Pausable, ReentrancyGuard, Ownable2Step {
 
     // Defaults: feeRecipient to provided address, feeBps = 40 (0.4%)
     // You can change them later via setFeeParams as the owner.
-    constructor() EIP712("OrderBook", "1") {
+    constructor() EIP712("CookBook", "1") {
         feeRecipient = 0x2D4C480247f0Ad0977C7a03F10d3b737872ac1f4;
         feeBps = 40; // 0.4%
     }
