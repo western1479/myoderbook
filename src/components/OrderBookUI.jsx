@@ -449,9 +449,7 @@ export default function COOKBOOKUI() {
   const [nonce, setNonce] = useState('1');
   
   // Approvals / taker
-  const [approveTokenAddr, setApproveTokenAddr] = useState('');
-  const [approveAmount, setApproveAmount] = useState('');
-  const [cancelUpToNonce, setCancelUpToNonce] = useState('');
+    const [cancelUpToNonce, setCancelUpToNonce] = useState('');
   const [balanceBase, setBalanceBase] = useState('0');
   const [balanceQuote, setBalanceQuote] = useState('0');
 
@@ -751,20 +749,7 @@ export default function COOKBOOKUI() {
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
-  const approveToken = async () => {
-    try {
-      if (!signer) return alert('Connect wallet');
-      if (!approveTokenAddr) return alert('Enter token to approve');
-      const erc = getErc20(approveTokenAddr);
-      const dec = await erc.decimals().catch(() => 18);
-      const amt = parseUnits(String(approveAmount || '0'), Number(dec));
-      setStatus('Sending approve...');
-      const tx = await erc.connect(signer).approve(ROUTER_ADDRESS, amt);
-      await tx.wait();
-      setStatus('Approve confirmed');
-    } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
-  };
-
+  
   
   const doCancelOrder = async (entry) => {
     try {
