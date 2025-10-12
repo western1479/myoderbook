@@ -1,10 +1,10 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\contracts\\CookBook.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\contracts\\COOKBOOK.sol": {
       "lastModificationDate": 1759676595009,
       "contentHash": "4dcae0a97862eefb500a14bf72f04813",
-      "sourceName": "contracts/CookBook.sol",
+      "sourceName": "contracts/COOKBOOK.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -43,10 +43,10 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "CookBook"
+        "COOKBOOK"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
       "lastModificationDate": 1759677555253,
       "contentHash": "1535f8c0c68463f8c1b5239f7584e71f",
       "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
@@ -83,7 +83,7 @@
         "ReentrancyGuard"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\security\\Pausable.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\security\\Pausable.sol": {
       "lastModificationDate": 1759677555192,
       "contentHash": "25c8108f36fdd472bc78d4c4af240c11",
       "sourceName": "@openzeppelin/contracts/security/Pausable.sol",
@@ -122,7 +122,7 @@
         "Pausable"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
       "lastModificationDate": 1759677554675,
       "contentHash": "df36f7051335cd1e748b1b6463b7fdd3",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
@@ -159,7 +159,7 @@
         "IERC20"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\access\\Ownable2Step.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\access\\Ownable2Step.sol": {
       "lastModificationDate": 1759677555185,
       "contentHash": "42f84a0a50cb6b19dcfc4c9a973c9f15",
       "sourceName": "@openzeppelin/contracts/access/Ownable2Step.sol",
@@ -198,7 +198,7 @@
         "Ownable2Step"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\EIP712.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\EIP712.sol": {
       "lastModificationDate": 1759677553502,
       "contentHash": "459aeb9cc3fc3c6d67d30ffefb724aba",
       "sourceName": "@openzeppelin/contracts/utils/cryptography/EIP712.sol",
@@ -239,7 +239,7 @@
         "EIP712"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\ECDSA.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\cryptography\\ECDSA.sol": {
       "lastModificationDate": 1759677553491,
       "contentHash": "d822a8a9468649cab463f29f5decf5cc",
       "sourceName": "@openzeppelin/contracts/utils/cryptography/ECDSA.sol",
@@ -278,7 +278,7 @@
         "ECDSA"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
       "lastModificationDate": 1759677555539,
       "contentHash": "1b5d667d3740d866eca0352758e59827",
       "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
@@ -319,7 +319,7 @@
         "SafeERC20"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
       "lastModificationDate": 1759677553168,
       "contentHash": "f07feb4a44b1a4872370da5aa70e8e46",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
@@ -356,7 +356,7 @@
         "Context"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
       "lastModificationDate": 1759677555167,
       "contentHash": "5a20b2cad87ddb61c7a3a6af21289e28",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
@@ -395,7 +395,7 @@
         "Ownable"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\ShortStrings.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\ShortStrings.sol": {
       "lastModificationDate": 1759677555557,
       "contentHash": "8dde288da49722a70f34ee369be4bfba",
       "sourceName": "@openzeppelin/contracts/utils/ShortStrings.sol",
@@ -434,7 +434,7 @@
         "ShortStrings"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC5267.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\interfaces\\IERC5267.sol": {
       "lastModificationDate": 1759677554782,
       "contentHash": "b1756048024350a162c3be27c04aa652",
       "sourceName": "@openzeppelin/contracts/interfaces/IERC5267.sol",
@@ -471,7 +471,7 @@
         "IERC5267"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
       "lastModificationDate": 1759677555622,
       "contentHash": "48686fc32a22a3754b8e63321857dd2a",
       "sourceName": "@openzeppelin/contracts/utils/Strings.sol",
@@ -511,7 +511,7 @@
         "Strings"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
       "lastModificationDate": 1759677555125,
       "contentHash": "fe63409d8a06818b926cf89e0ea88b1b",
       "sourceName": "@openzeppelin/contracts/utils/math/Math.sol",
@@ -548,7 +548,7 @@
         "Math"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
       "lastModificationDate": 1759677555573,
       "contentHash": "9488ebd4daacfee8ad04811600d7d061",
       "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
@@ -585,7 +585,7 @@
         "SignedMath"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\StorageSlot.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\StorageSlot.sol": {
       "lastModificationDate": 1759677555603,
       "contentHash": "682f7dd1f2e1147c8390e7575deceb2d",
       "sourceName": "@openzeppelin/contracts/utils/StorageSlot.sol",
@@ -622,7 +622,7 @@
         "StorageSlot"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
       "lastModificationDate": 1759677553021,
       "contentHash": "211ffd288c1588ba8c10eae668ca3c66",
       "sourceName": "@openzeppelin/contracts/utils/Address.sol",
@@ -659,7 +659,7 @@
         "Address"
       ]
     },
-    "C:\\Users\\HAMMAD\\CookBook\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Permit.sol": {
+    "C:\\Users\\HAMMAD\\COOKBOOK\\onchain\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Permit.sol": {
       "lastModificationDate": 1759677554701,
       "contentHash": "525fcdad8d171312933f47baf01d1ed8",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol",

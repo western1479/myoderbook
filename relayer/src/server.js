@@ -17,27 +17,29 @@ const { Pool } = pkg;
 // ---------------------
 const CONFIG = {
   PORT: Number(process.env.PORT || 8080),
-  CookBook_ADDRESS: (process.env.CookBook_ADDRESS || '').toLowerCase(),
+  COOKBOOK_ADDRESS: (process.env.COOKBOOK_ADDRESS || '').toLowerCase(),
   CHAIN_ID: Number(process.env.CHAIN_ID || 56),
   BSC_RPC_URL: process.env.BSC_RPC_URL || 'https://bsc.publicnode.com',
   DATABASE_URL: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '',
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX || 300),
   RATE_LIMIT_TIME_WINDOW: process.env.RATE_LIMIT_TIME_WINDOW || '1 minute',
-  DEPLOY_BLOCK: Number(process.env.CookBook_DEPLOY_BLOCK || 0),
+  DEPLOY_BLOCK: Number(process.env.COOKBOOK_DEPLOY_BLOCK || 0),
   BSC_HTTP_URL: process.env.BSC_HTTP_URL || ''
 };
 
-if (!CONFIG.CookBook_ADDRESS || !CONFIG.DATABASE_URL) {
-  console.error('Missing required env CookBook_ADDRESS or DATABASE_URL');
+if (!CONFIG.COOKBOOK_ADDRESS || !CONFIG.DATABASE_URL) {
+  console.error('Missing required env COOKBOOK_ADDRESS or DATABASE_URL');
   process.exit(1);
 }
 
 // ---------------------
-// EIP-712 Domain/Types
+// EIP-712 Domain/Types (dynamic from contract)
 // ---------------------
+let EIP712_NAME = 'OrderBook';
+let EIP712_VERSION = '1';
 const domain = (chainId, verifyingContract) => ({
-  name: 'CookBook',
-  version: '1',
+  name: EIP712_NAME,
+  version: EIP712_VERSION,
   chainId,
   verifyingContract
 });
@@ -73,13 +75,14 @@ const httpProvider = (CONFIG.BSC_HTTP_URL && CONFIG.BSC_HTTP_URL.startsWith('htt
   ? new ethers.JsonRpcProvider(CONFIG.BSC_HTTP_URL, CONFIG.CHAIN_ID)
   : ((CONFIG.BSC_RPC_URL || '').startsWith('http') ? new ethers.JsonRpcProvider(CONFIG.BSC_RPC_URL, CONFIG.CHAIN_ID) : null);
 
-const CookBook_ABI = [
+const COOKBOOK_ABI = [
   'function tokenAllowed(address) view returns (bool)',
   'function pairKey(address,address) pure returns (bytes32)',
   'function pairAllowed(bytes32) view returns (bool)',
   'function minValidNonce(address) view returns (uint256)',
   'function filledBase(bytes32) view returns (uint256)',
   'function orderHash((address,address,address,uint8,uint256,uint256,uint256,uint256)) view returns (bytes32)',
+  'function eip712Domain() view returns (bytes1,string,string,uint256,address,bytes32,uint256[])',
   'event OrderFilled(bytes32 indexed orderHash,address indexed maker,address indexed taker,address base,address quote,uint8 side,uint256 fillAmountBase,uint256 fillAmountQuote,uint256 feeQuote,address feePayer)',
   'event OrderCancelled(bytes32 indexed orderHash,address indexed maker)',
   'event CancelUpTo(address indexed maker,uint256 newMinNonce)',
@@ -91,8 +94,17 @@ const ERC20_ABI = [
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)'
 ];
-const CookBook = new ethers.Contract(CONFIG.CookBook_ADDRESS, CookBook_ABI, provider);
-const iface = new ethers.Interface(CookBook_ABI);
+const COOKBOOK = new ethers.Contract(CONFIG.COOKBOOK_ADDRESS, COOKBOOK_ABI, provider);
+async function loadEip712Domain() {
+  try {
+    const d = await COOKBOOK.eip712Domain();
+    const name = (d && d.name) ?? (Array.isArray(d) ? d[1] : undefined);
+    const ver = (d && d.version) ?? (Array.isArray(d) ? d[2] : undefined);
+    if (name) EIP712_NAME = String(name);
+    if (ver) EIP712_VERSION = String(ver);
+  } catch {}
+}
+const iface = new ethers.Interface(COOKBOOK_ABI);
 const TOPIC_TOKEN_ALLOWED = ethers.id('TokenAllowedSet(address,bool)');
 const TOPIC_PAIR_ALLOWED = ethers.id('PairAllowedSet(address,address,bool)');
 
@@ -254,29 +266,29 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 async function computeOrderHash(order) {
   // Use contract for canonical hash
   try {
-    return await CookBook.orderHash(order);
+    return await COOKBOOK.orderHash(order);
   } catch (e) {
     // Fallback to pure encoder if needed
-    return TypedDataEncoder.hash(domain(CONFIG.CHAIN_ID, CONFIG.CookBook_ADDRESS), types, order);
+    return TypedDataEncoder.hash(domain(CONFIG.CHAIN_ID, CONFIG.COOKBOOK_ADDRESS), types, order);
   }
 }
 
 async function onchainValidate(order) {
   const [tokenBase, tokenQuote] = await Promise.all([
-    CookBook.tokenAllowed(order.base),
-    CookBook.tokenAllowed(order.quote)
+    COOKBOOK.tokenAllowed(order.base),
+    COOKBOOK.tokenAllowed(order.quote)
   ]);
   if (!tokenBase || !tokenQuote) return { ok: false, reason: 'token not allowed' };
-  const key = await CookBook.pairKey(order.base, order.quote);
-  const allowed = await CookBook.pairAllowed(key);
+  const key = await COOKBOOK.pairKey(order.base, order.quote);
+  const allowed = await COOKBOOK.pairAllowed(key);
   if (!allowed) return { ok: false, reason: 'pair not allowed' };
   if (bn(order.expiry) < BigInt(nowSec())) return { ok: false, reason: 'expired' };
   if (!(order.side === 0 || order.side === 1)) return { ok: false, reason: 'bad side' };
   if (bn(order.amount) <= 0n || bn(order.price) <= 0n) return { ok: false, reason: 'bad amount/price' };
-  const min = await CookBook.minValidNonce(order.maker);
+  const min = await COOKBOOK.minValidNonce(order.maker);
   if (bn(order.nonce) < bn(min)) return { ok: false, reason: 'nonce invalid' };
   const h = await computeOrderHash(order);
-  const filled = await CookBook.filledBase(h);
+  const filled = await COOKBOOK.filledBase(h);
   if (bn(filled) >= bn(order.amount)) return { ok: false, reason: 'fully filled' };
   return { ok: true, hash: h };
 }
@@ -332,7 +344,7 @@ async function backfillAllowlist() {
       // TokenAllowedSet
       let tokenLogs = [];
       try {
-        tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to });
+        tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.COOKBOOK_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to });
       } catch (e) {
         console.error('backfill token logs error', e?.message || e);
       }
@@ -349,7 +361,7 @@ async function backfillAllowlist() {
       // PairAllowedSet
       let pairLogs = [];
       try {
-        pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to });
+        pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.COOKBOOK_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to });
       } catch (e) {
         console.error('backfill pair logs error', e?.message || e);
       }
@@ -384,12 +396,12 @@ function startAllowlistPoller() {
       while (from <= current) {
         const to = Math.min(current, from + step);
         let tokenLogs = [];
-        try { tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll token logs error', e?.message || e); }
+        try { tokenLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.COOKBOOK_ADDRESS, topics: [TOPIC_TOKEN_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll token logs error', e?.message || e); }
         for (const log of tokenLogs) {
           try { const p = iface.parseLog(log); if (p?.name === 'TokenAllowedSet') await setTokenAllowedDB(p.args[0], p.args[1]); } catch {}
         }
         let pairLogs = [];
-        try { pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.CookBook_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll pair logs error', e?.message || e); }
+        try { pairLogs = await (httpProvider ?? provider).getLogs({ address: CONFIG.COOKBOOK_ADDRESS, topics: [TOPIC_PAIR_ALLOWED], fromBlock: from, toBlock: to }); } catch (e) { console.error('poll pair logs error', e?.message || e); }
         for (const log of pairLogs) {
           try { const p = iface.parseLog(log); if (p?.name === 'PairAllowedSet') { await Promise.all([ensureTokenMeta(p.args[0]), ensureTokenMeta(p.args[1])]); await setPairAllowedDB(p.args[0], p.args[1], p.args[2]); } } catch {}
         }
@@ -501,7 +513,7 @@ app.post('/orders', async (req, reply) => {
     const order = normalizeOrder(body.order);
 
     // Verify signature
-    const recovered = verifyTypedData(domain(CONFIG.CHAIN_ID, CONFIG.CookBook_ADDRESS), types, order, body.signature);
+    const recovered = verifyTypedData(domain(CONFIG.CHAIN_ID, CONFIG.COOKBOOK_ADDRESS), types, order, body.signature);
     if (recovered.toLowerCase() !== order.maker.toLowerCase()) {
       return reply.code(400).send({ error: 'bad signature' });
     }
@@ -545,7 +557,7 @@ app.post('/orders', async (req, reply) => {
   }
 });
 
-app.get('/CookBook', async (req, reply) => {
+app.get('/COOKBOOK', async (req, reply) => {
   const q = req.query || {};
   const base = String(q.base || '').toLowerCase();
   const quote = String(q.quote || '').toLowerCase();
@@ -570,7 +582,7 @@ app.get('/CookBook', async (req, reply) => {
 });
 
 app.get('/markets', async (_req, reply) => {
-  const { rows: pairs } = await pool.query('SELECT base, quote FROM pairs WHERE allowed=TRUE ORDER BY base, quote LIMIT 500');
+  const { rows: pairs } = await pool.query('SELECT base, quote, updated_at FROM pairs WHERE allowed=TRUE ORDER BY updated_at DESC, base, quote LIMIT 500');
   const out = [];
   for (const p of pairs) {
     const base = String(p.base).toLowerCase();
@@ -593,7 +605,7 @@ app.get('/markets', async (_req, reply) => {
         return { address: quote, symbol: r.rows[0].symbol, decimals: Number(r.rows[0].decimals) };
       })()
     ]);
-    out.push({ id: `${b.symbol}/${q.symbol}`, base: b, quote: q });
+    out.push({ id: `${b.symbol}/${q.symbol}`, base: b, quote: q, updatedAt: p.updated_at });
   }
   return reply.send(out);
 });
@@ -601,7 +613,7 @@ app.get('/markets', async (_req, reply) => {
 // ---------------------
 // Event indexer
 // ---------------------
-CookBook.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, fillBase, fillQuote, feeQuote, feePayer, evt) => {
+COOKBOOK.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, fillBase, fillQuote, feeQuote, feePayer, evt) => {
   try {
     const h = String(orderHash).toLowerCase();
     // decrement remaining
@@ -626,7 +638,7 @@ CookBook.on('OrderFilled', async (orderHash, maker, taker, base, quote, side, fi
   } catch (e) { console.error('OrderFilled handling error', e); }
 });
 
-CookBook.on('OrderCancelled', async (orderHash, maker) => {
+COOKBOOK.on('OrderCancelled', async (orderHash, maker) => {
   try {
     const h = String(orderHash).toLowerCase();
     const { rows } = await pool.query('SELECT base,quote FROM orders WHERE order_hash=$1', [h]);
@@ -638,7 +650,7 @@ CookBook.on('OrderCancelled', async (orderHash, maker) => {
   } catch (e) { console.error('OrderCancelled handling error', e); }
 });
 
-CookBook.on('CancelUpTo', async (maker, newMin) => {
+COOKBOOK.on('CancelUpTo', async (maker, newMin) => {
   try {
     const m = String(maker).toLowerCase();
     const { rows } = await pool.query('SELECT order_hash, base, quote FROM orders WHERE maker=$1 AND nonce < $2 AND status=\'active\'', [m, String(newMin)]);
@@ -651,13 +663,13 @@ CookBook.on('CancelUpTo', async (maker, newMin) => {
 });
 
 // Allowlist via live events only (no polling)
-CookBook.on('TokenAllowedSet', async (token, allowed) => {
+COOKBOOK.on('TokenAllowedSet', async (token, allowed) => {
   try {
     await setTokenAllowedDB(token, allowed);
   } catch (e) { console.error('TokenAllowedSet handling error', e); }
 });
 
-CookBook.on('PairAllowedSet', async (base, quote, allowed) => {
+COOKBOOK.on('PairAllowedSet', async (base, quote, allowed) => {
   try {
     await Promise.all([ensureTokenMeta(base), ensureTokenMeta(quote)]);
     await setPairAllowedDB(base, quote, allowed);
@@ -706,6 +718,7 @@ async function computePairStats(base, quote) {
     const sinceRes = await pool.query("SELECT fill_base, fill_quote, time FROM trades WHERE base=$1 AND quote=$2 AND time >= NOW() - INTERVAL '24 hours' ORDER BY time ASC", [b, q]);
     let volumeQuote24h = 0;
     let change24h = 0;
+    let tradesCount60m = 0;
     if (sinceRes.rows.length > 0) {
       for (const r of sinceRes.rows) {
         try { volumeQuote24h += Number(ethers.formatUnits(r.fill_quote, qd)); } catch {}
@@ -720,9 +733,14 @@ async function computePairStats(base, quote) {
       } catch {}
     }
 
-    return { base: b, quote: q, lastPrice, volumeQuote24h, change24h };
+    try {
+      const cntRes = await pool.query("SELECT count(*)::int AS n FROM trades WHERE base=$1 AND quote=$2 AND time >= NOW() - INTERVAL '60 minutes'", [b, q]);
+      tradesCount60m = Number(cntRes.rows[0]?.n || 0);
+    } catch {}
+
+    return { base: b, quote: q, lastPrice, volumeQuote24h, change24h, tradesCount60m };
   } catch (e) {
-    return { base, quote, lastPrice: null, volumeQuote24h: 0, change24h: 0 };
+    return { base, quote, lastPrice: null, volumeQuote24h: 0, change24h: 0, tradesCount60m: 0 };
   }
 }
 
@@ -766,6 +784,7 @@ if (CONFIG.DEPLOY_BLOCK > 0) {
   try { await backfillAllowlist(); app.log.info('Allowlist backfilled'); } catch (e) { app.log.error(e); }
 }
 app.log.info('Allowlist poller disabled; using live WS events only');
+try { await loadEip712Domain(); app.log.info({ EIP712_NAME, EIP712_VERSION }, 'Loaded EIP-712 domain'); } catch {}
 app.listen({ port: CONFIG.PORT, host: '0.0.0.0' }).then(() => {
   console.log(`Relayer listening on :${CONFIG.PORT}`);
 }).catch((err) => {

@@ -4,12 +4,12 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying with:", deployer.address);
 
-  const CookBook = await hre.ethers.getContractFactory("CookBook");
-  const CookBook = await CookBook.deploy();
-  await CookBook.waitForDeployment();
+  const COOKBOOK = await hre.ethers.getContractFactory("COOKBOOK");
+  const COOKBOOK = await COOKBOOK.deploy();
+  await COOKBOOK.waitForDeployment();
 
-  const obAddr = await CookBook.getAddress();
-  console.log("CookBook deployed to:", obAddr);
+  const obAddr = await COOKBOOK.getAddress();
+  console.log("COOKBOOK deployed to:", obAddr);
 
   const Router = await hre.ethers.getContractFactory("SettlementRouter");
   const router = await Router.deploy(obAddr);
@@ -17,8 +17,8 @@ async function main() {
   const routerAddr = await router.getAddress();
   console.log("SettlementRouter deployed to:", routerAddr);
 
-  const feeBps = await CookBook.feeBps();
-  const feeRecipient = await CookBook.feeRecipient();
+  const feeBps = await COOKBOOK.feeBps();
+  const feeRecipient = await COOKBOOK.feeRecipient();
   console.log("feeBps:", feeBps.toString());
   console.log("feeRecipient:", feeRecipient);
 }

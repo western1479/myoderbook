@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "CookBook",
-  "sourceName": "contracts/CookBook.sol",
+  "contractName": "COOKBOOK",
+  "sourceName": "contracts/COOKBOOK.sol",
   "abi": [
     {
       "inputs": [],
@@ -353,7 +353,7 @@
               "type": "uint256"
             }
           ],
-          "internalType": "struct CookBook.Order",
+          "internalType": "struct COOKBOOK.Order",
           "name": "o",
           "type": "tuple"
         }
@@ -509,7 +509,7 @@
               "type": "uint256"
             }
           ],
-          "internalType": "struct CookBook.Order",
+          "internalType": "struct COOKBOOK.Order",
           "name": "o",
           "type": "tuple"
         },
@@ -590,7 +590,7 @@
               "type": "uint256"
             }
           ],
-          "internalType": "struct CookBook.Order[]",
+          "internalType": "struct COOKBOOK.Order[]",
           "name": "orders",
           "type": "tuple[]"
         },
@@ -709,7 +709,7 @@
               "type": "uint256"
             }
           ],
-          "internalType": "struct CookBook.Order",
+          "internalType": "struct COOKBOOK.Order",
           "name": "o",
           "type": "tuple"
         }
@@ -859,7 +859,7 @@
               "type": "uint256"
             }
           ],
-          "internalType": "struct CookBook.Order",
+          "internalType": "struct COOKBOOK.Order",
           "name": "o",
           "type": "tuple"
         }

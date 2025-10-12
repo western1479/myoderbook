@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { BrowserProvider, Contract, parseUnits, formatUnits, toBigInt, getAddress } from 'ethers';
 import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react';
 
-// Deployed CookBook (BSC)
-const CookBook_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
+// Deployed COOKBOOK (BSC)
+const COOKBOOK_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
 // Deployed Settlement Router (pull taker funds via allowance)
 const ROUTER_ADDRESS = '0xd753D91AE23D79A4178368efef2981aee315ccaA';
 
@@ -16,8 +16,8 @@ const ERC20_ABI = [
   'function balanceOf(address) view returns (uint256)'
 ];
 
-// CookBook ABI (provided)
-const CookBook_ABI = [
+// COOKBOOK ABI (provided)
+const COOKBOOK_ABI = [
   { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
   { "inputs": [], "name": "InvalidShortString", "type": "error" },
   { "inputs": [{ "internalType": "string", "name": "str", "type": "string" }], "name": "StringTooLong", "type": "error" },
@@ -35,13 +35,13 @@ const CookBook_ABI = [
   { "inputs": [], "name": "BPS_DENOMINATOR", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "ORDER_TYPEHASH", "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "PRICE_DECIMALS", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order", "name": "o", "type": "tuple" }], "name": "cancelOrder", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct COOKBOOK.Order", "name": "o", "type": "tuple" }], "name": "cancelOrder", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "internalType": "uint256", "name": "newMinNonce", "type": "uint256" }], "name": "cancelUpTo", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [], "name": "eip712Domain", "outputs": [{ "internalType": "bytes1", "name": "fields", "type": "bytes1" }, { "internalType": "string", "name": "name", "type": "string" }, { "internalType": "string", "name": "version", "type": "string" }, { "internalType": "uint256", "name": "chainId", "type": "uint256" }, { "internalType": "address", "name": "verifyingContract", "type": "address" }, { "internalType": "bytes32", "name": "salt", "type": "bytes32" }, { "internalType": "uint256[]", "name": "extensions", "type": "uint256[]" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "feeBps", "outputs": [{ "internalType": "uint16", "name": "", "type": "uint16" }], "stateMutability": "view", "type": "function" },
   { "inputs": [], "name": "feeRecipient", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order", "name": "o", "type": "tuple" }, { "internalType": "bytes", "name": "sig", "type": "bytes" }, { "internalType": "uint256", "name": "fillAmountBase", "type": "uint256" }], "name": "fillOrder", "outputs": [{ "internalType": "uint256", "name": "filledBaseOut", "type": "uint256" }, { "internalType": "uint256", "name": "filledQuoteOut", "type": "uint256" }, { "internalType": "uint256", "name": "feeQuoteOut", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct CookBook.Order[]", "name": "orders", "type": "tuple[]" }, { "internalType": "bytes[]", "name": "sigs", "type": "bytes[]" }, { "internalType": "uint256[]", "name": "fillAmountsBase", "type": "uint256[]" }], "name": "fillOrders", "outputs": [{ "internalType": "uint256", "name": "totalBase", "type": "uint256" }, { "internalType": "uint256", "name": "totalQuote", "type": "uint256" }, { "internalType": "uint256", "name": "totalFee", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct COOKBOOK.Order", "name": "o", "type": "tuple" }, { "internalType": "bytes", "name": "sig", "type": "bytes" }, { "internalType": "uint256", "name": "fillAmountBase", "type": "uint256" }], "name": "fillOrder", "outputs": [{ "internalType": "uint256", "name": "filledBaseOut", "type": "uint256" }, { "internalType": "uint256", "name": "filledQuoteOut", "type": "uint256" }, { "internalType": "uint256", "name": "feeQuoteOut", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "components": [{ "internalType": "address", "name": "maker", "type": "address" }, { "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }, { "internalType": "uint8", "name": "side", "type": "uint8" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "expiry", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }], "internalType": "struct COOKBOOK.Order[]", "name": "orders", "type": "tuple[]" }, { "internalType": "bytes[]", "name": "sigs", "type": "bytes[]" }, { "internalType": "uint256[]", "name": "fillAmountsBase", "type": "uint256[]" }], "name": "fillOrders", "outputs": [{ "internalType": "uint256", "name": "totalBase", "type": "uint256" }, { "internalType": "uint256", "name": "totalQuote", "type": "uint256" }, { "internalType": "uint256", "name": "totalFee", "type": "uint256" }], "stateMutability": "nonpayable", "type": "function" },
   { "inputs": [{ "internalType": "address", "name": "base", "type": "address" }, { "internalType": "address", "name": "quote", "type": "address" }], "name": "pairKey", "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }], "stateMutability": "pure", "type": "function" },
 ];
 
@@ -126,7 +126,7 @@ const makeStyles = (theme, isMobile) => {
       padding: '12px 16px', borderRadius: 14, border: `1px solid ${colors.inputBorder}`, background: colors.buttonBg, color: colors.buttonText, cursor: 'pointer', backdropFilter: 'blur(12px)', boxShadow: '0 8px 24px rgba(0,0,0,0.18)', transition: 'transform .15s ease, box-shadow .15s ease'
     },
     buttonPrimary: { background: dark ? 'linear-gradient(135deg, #00e0ff 0%, #7b61ff 100%)' : 'linear-gradient(135deg, #0aa7ff 0%, #7b61ff 100%)', border: 'none', boxShadow: dark ? '0 10px 30px rgba(0,224,255,0.22)' : '0 10px 24px rgba(10,167,255,0.22)', color: '#fff' },
-    grid3: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr 360px', gap: 16 },
+    grid3: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr 1fr', gap: 20 },
     card: { background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 18, boxShadow: dark ? '0 12px 48px rgba(0,0,0,0.35)' : '0 10px 28px rgba(0,0,0,0.10)', backdropFilter: 'blur(12px)' },
     sectionTitle: { fontWeight: 800, letterSpacing: 0.3, fontSize: isMobile ? 14 : 18, marginBottom: isMobile ? 6 : 10, color: colors.title },
     label: { fontSize: 12, opacity: 0.85, marginBottom: 6, color: colors.hint },
@@ -200,23 +200,36 @@ function formatBalanceShort(v) {
   } catch { return '0.0000'; }
 }
 
-function MarketList({ markets, selectedIndex, onSelect, tokenLogos, s, statsMap, isMobile, onMobileOpen }) {
+function MarketList({ markets, selectedIndex, onSelect, tokenLogos, s, statsMap, isMobile, onMobileOpen, filter, setFilter, search, setSearch }) {
   return (
     <div style={s.card}>
       <div style={s.sectionTitle}>Markets</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginBottom: 8 }}>
+        <input style={s.input} placeholder="Search (symbol)" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button style={s.tabBtn(filter === 'all')} onClick={() => setFilter('all')}>All</button>
+          <button style={s.tabBtn(filter === 'new')} onClick={() => setFilter('new')}>New</button>
+          <button style={s.tabBtn(filter === 'volume')} onClick={() => setFilter('volume')}>Most Volume</button>
+          <button style={s.tabBtn(filter === 'gainers')} onClick={() => setFilter('gainers')}>Trending</button>
+          <button style={s.tabBtn(filter === 'losers')} onClick={() => setFilter('losers')}>Losers</button>
+          <button style={s.tabBtn(filter === 'hot')} onClick={() => setFilter('hot')}>Hot</button>
+        </div>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {markets.map((m, i) => {
           const key = `${norm(m.base.address)}_${norm(m.quote.address)}`;
           const st = statsMap[key] || {};
+          const orig = (m && m.originalIndex != null) ? m.originalIndex : i;
+          const isSelected = orig === selectedIndex;
           return (
             <button
               key={m.id}
-              onClick={() => { onSelect(i); if (isMobile && onMobileOpen) onMobileOpen(); }}
+              onClick={() => { onSelect(orig); if (isMobile && onMobileOpen) onMobileOpen(); }}
               style={{
                 ...s.button,
                 justifyContent: 'space-between',
                 textAlign: 'left',
-                background: i === selectedIndex ? 'linear-gradient(135deg, rgba(0,224,255,0.25), rgba(123,97,255,0.25))' : s.button.background
+                background: isSelected ? 'linear-gradient(135deg, rgba(0,224,255,0.25), rgba(123,97,255,0.25))' : s.button.background
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -250,6 +263,61 @@ function MarketList({ markets, selectedIndex, onSelect, tokenLogos, s, statsMap,
   );
 }
 
+function MarketsTable({ markets, selectedIndex, onSelect, tokenLogos, s, statsMap, filter, setFilter, search, setSearch, onOpenDetail }) {
+  return (
+    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={s.sectionTitle}>Markets</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginBottom: 8 }}>
+        <input style={s.input} placeholder="Search (symbol)" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button style={s.tabBtn(filter === 'all')} onClick={() => setFilter('all')}>All</button>
+          <button style={s.tabBtn(filter === 'new')} onClick={() => setFilter('new')}>New</button>
+          <button style={s.tabBtn(filter === 'volume')} onClick={() => setFilter('volume')}>Most Volume</button>
+          <button style={s.tabBtn(filter === 'gainers')} onClick={() => setFilter('gainers')}>Trending</button>
+          <button style={s.tabBtn(filter === 'losers')} onClick={() => setFilter('losers')}>Losers</button>
+          <button style={s.tabBtn(filter === 'hot')} onClick={() => setFilter('hot')}>Hot</button>
+        </div>
+      </div>
+      <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1 }}>
+        <table style={s.table}>
+          <thead>
+            <tr>
+              <th style={s.th}>Market</th>
+              <th style={s.th}>Price</th>
+              <th style={s.th}>Market Cap</th>
+              <th style={s.th}>Volume (24h)</th>
+              <th style={s.th}>Change (24h)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {markets.map((m, i) => {
+              const key = `${norm(m.base.address)}_${norm(m.quote.address)}`;
+              const st = statsMap[key] || {};
+              const orig = (m && m.originalIndex != null) ? m.originalIndex : i;
+              const isSelected = orig === selectedIndex;
+              return (
+                <tr key={m.id} onClick={() => { try { onSelect(orig); } finally { if (onOpenDetail) onOpenDetail(); } }} style={{ cursor: 'pointer', background: isSelected ? 'rgba(0,224,255,0.08)' : 'transparent' }}>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <img alt={m.base.symbol} src={tokenLogos[norm(m.base.address)] || logoURL(m.base.address)} onError={(e) => { e.currentTarget.src = placeholderLogo(m.base.symbol); }} style={{ width: 18, height: 18, borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)' }} />
+                      <img alt={m.quote.symbol} src={tokenLogos[norm(m.quote.address)] || logoURL(m.quote.address)} onError={(e) => { e.currentTarget.src = placeholderLogo(m.quote.symbol); }} style={{ width: 18, height: 18, borderRadius: 9, border: '1px solid rgba(255,255,255,0.12)' }} />
+                      <span style={{ fontWeight: 700 }}>{m.id}</span>
+                    </div>
+                  </td>
+                  <td style={s.td}>{formatNum(st.lastPrice, { digits: 6 })}</td>
+                  <td style={s.td}>-</td>
+                  <td style={s.td}>{formatAbbrev(st.volumeQuote24h)}</td>
+                  <td style={{ ...s.td, color: (st.change24h ?? 0) >= 0 ? s.upColor : s.downColor }}>{st.change24h == null ? '-' : `${formatNum(st.change24h, { digits: 2 })}%`}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function GeckoTerminalChart({ baseAddress, poolId, height = 380 }) {
   const base = (baseAddress || '').toLowerCase();
   const src = poolId
@@ -266,15 +334,15 @@ function GeckoTerminalChart({ baseAddress, poolId, height = 380 }) {
   );
 }
 
-function CookBookTables({ bids, asks, baseSymbol, quoteSymbol, baseDecimals, s, isMobile, twoCols = false }) {
+function COOKBOOKTables({ bids, asks, baseSymbol, quoteSymbol, baseDecimals, s, isMobile, twoCols = false }) {
   const fmt = (x, d=baseDecimals) => {
     try { return formatUnits(x, d); } catch { return String(x); }
   };
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: twoCols ? '1fr 1fr' : (isMobile ? '1fr' : '1fr 1fr'), gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: twoCols ? '1fr 1fr' : (isMobile ? '1fr' : '1fr 1fr'), gap: 20 }}>
       <div style={s.card}>
         <div style={s.sectionTitle}>Asks (SELL)</div>
-        <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 320, overflowY: 'auto' }}>
           <table style={s.table}>
             <thead>
               <tr>
@@ -299,7 +367,7 @@ function CookBookTables({ bids, asks, baseSymbol, quoteSymbol, baseDecimals, s, 
       </div>
       <div style={s.card}>
         <div style={s.sectionTitle}>Bids (BUY)</div>
-        <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 320, overflowY: 'auto' }}>
           <table style={s.table}>
             <thead>
               <tr>
@@ -341,7 +409,7 @@ function useLocalStorage(key, initial) {
   return [val, setVal];
 }
 
-export default function CookBookUI() {
+export default function COOKBOOKUI() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [account, setAccount] = useState('');
@@ -359,6 +427,7 @@ export default function CookBookUI() {
   const [theme, setTheme] = useLocalStorage('ui:theme', 'dark');
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState('list'); // 'list' | 'detail'
+  const [desktopView, setDesktopView] = useState('list'); // 'list' | 'detail'
   const [activeTab, setActiveTab] = useState('chart'); // 'chart' | 'trade'
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 900px)');
@@ -388,13 +457,30 @@ export default function CookBookUI() {
 
   const [status, setStatus] = useState('');
   const [lastTxHash, setLastTxHash] = useState('');
-  const [recentFills, setRecentFills] = useLocalStorage('CookBook:recentFills', []);
-  const [myOrders, setMyOrders] = useLocalStorage('CookBook:myOrders', []);
+  const [recentFills, setRecentFills] = useLocalStorage('COOKBOOK:recentFills', []);
+  const [myOrders, setMyOrders] = useLocalStorage('COOKBOOK:myOrders', []);
 
-  const CookBook = useMemo(() => {
+  const COOKBOOK = useMemo(() => {
     const p = signer ?? provider;
-    return p ? new Contract(CookBook_ADDRESS, CookBook_ABI, p) : null;
+    return p ? new Contract(COOKBOOK_ADDRESS, COOKBOOK_ABI, p) : null;
   }, [provider, signer]);
+
+  // EIP-712 domain from contract (dynamic)
+  const [domainName, setDomainName] = useState('OrderBook');
+  const [domainVersion, setDomainVersion] = useState('1');
+  useEffect(() => {
+    (async () => {
+      try {
+        if (COOKBOOK) {
+          const d = await COOKBOOK.eip712Domain();
+          const nm = d?.name || 'OrderBook';
+          const ver = d?.version || '1';
+          setDomainName(nm);
+          setDomainVersion(ver);
+        }
+      } catch {}
+    })();
+  }, [COOKBOOK]);
 
   // Wallet setup
   useEffect(() => {
@@ -444,8 +530,9 @@ export default function CookBookUI() {
     const host = window.location.hostname;
     const isLocalHost = host === 'localhost' || host === '127.0.0.1';
     const envIsLocal = /^(http|https):\/\/(localhost|127\.0\.0\.1)(:\\d+)?/i.test(RELAYER_URL);
-    // In production (non-localhost), ignore env if it points to localhost; default to same-origin
-    if (!RELAYER_URL || (!isLocalHost && envIsLocal)) {
+    if (!RELAYER_URL) {
+      RELAYER_URL = isLocalHost ? 'http://localhost:8080' : window.location.origin;
+    } else if (!isLocalHost && envIsLocal) {
       RELAYER_URL = window.location.origin;
     }
   }
@@ -537,13 +624,53 @@ export default function CookBookUI() {
     return () => { if (timer) clearTimeout(timer); };
   }, [httpUrl]);
 
-  // CookBook and trades
+  // Markets filter/sort/search
+  const [filter, setFilter] = useState('all'); // 'all' | 'new' | 'volume' | 'gainers' | 'losers' | 'hot'
+  const [search, setSearch] = useState('');
+  const viewMarkets = useMemo(() => {
+    try {
+      const items = (markets || []).map((m, i) => {
+        const key = `${norm(m.base.address)}_${norm(m.quote.address)}`;
+        const st = statsMap[key] || {};
+        const updatedAt = m.updatedAt ? new Date(m.updatedAt).getTime() : 0;
+        return { ...m, originalIndex: i, _stats: st, _updatedAt: updatedAt };
+      });
+      let arr = items;
+      const q = (search || '').trim().toLowerCase();
+      if (q) {
+        arr = arr.filter(m => (m.id || '').toLowerCase().includes(q) || (m.base?.symbol || '').toLowerCase().includes(q) || (m.quote?.symbol || '').toLowerCase().includes(q));
+      }
+      switch (filter) {
+        case 'new':
+          arr = arr.slice().sort((a, b) => (b._updatedAt - a._updatedAt));
+          break;
+        case 'volume':
+          arr = arr.slice().sort((a, b) => ((b._stats?.volumeQuote24h || 0) - (a._stats?.volumeQuote24h || 0)));
+          break;
+        case 'gainers':
+          arr = arr.slice().sort((a, b) => ((b._stats?.change24h || 0) - (a._stats?.change24h || 0)));
+          break;
+        case 'losers':
+          arr = arr.slice().sort((a, b) => ((a._stats?.change24h || 0) - (b._stats?.change24h || 0)));
+          break;
+        case 'hot':
+          arr = arr.slice().sort((a, b) => ((b._stats?.tradesCount60m || 0) - (a._stats?.tradesCount60m || 0)));
+          break;
+        default:
+          // keep backend order
+          break;
+      }
+      return arr;
+    } catch { return markets || []; }
+  }, [markets, statsMap, filter, search]);
+
+  // COOKBOOK and trades
   const [bids, setBids] = useState([]);
   const [asks, setAsks] = useState([]);
 
-  const seedCookBook = useCallback(async () => {
+  const seedCOOKBOOK = useCallback(async () => {
     try {
-      const res = await fetch(`${httpUrl}/CookBook?base=${selected.base.address}&quote=${selected.quote.address}`);
+      const res = await fetch(`${httpUrl}/COOKBOOK?base=${selected.base.address}&quote=${selected.quote.address}`);
       const data = await res.json();
       const filterActive = (arr) => (Array.isArray(arr) ? arr.filter(r => { try { return toBigInt(r.remaining ?? r.amount ?? '0') > toBigInt(0); } catch { return true; } }) : []);
       setBids(filterActive(data.bids));
@@ -551,7 +678,7 @@ export default function CookBookUI() {
     } catch (e) { console.error(e); }
   }, [httpUrl, selected]);
 
-  useEffect(() => { seedCookBook(); }, [seedCookBook]);
+  useEffect(() => { seedCOOKBOOK(); }, [seedCOOKBOOK]);
 
   useEffect(() => {
     let ws;
@@ -562,7 +689,7 @@ export default function CookBookUI() {
         try {
           const msg = JSON.parse(ev.data);
           if (msg.op === 'OrderAdded' || msg.op === 'OrderUpdated' || msg.op === 'OrderRemoved') {
-            seedCookBook();
+            seedCOOKBOOK();
           } else if (msg.op === 'Trade') {
             const txh = msg.tx || msg.transactionHash || msg.hash || (msg.transaction && msg.transaction.hash);
             setRecentFills((prev) => [ { ...msg, tx: txh, base: msg.base || selected.base.address, quote: msg.quote || selected.quote.address, time: msg.time || Date.now() }, ...prev ].slice(0, 200));
@@ -589,7 +716,7 @@ export default function CookBookUI() {
       };
     } catch (e) { console.error(e); }
     return () => { try { ws && ws.close(); } catch {} };
-  }, [wsUrl, selected, seedCookBook, setRecentFills, account]);
+  }, [wsUrl, selected, seedCOOKBOOK, setRecentFills, account]);
 
   
   // Place (sign) order
@@ -601,7 +728,7 @@ export default function CookBookUI() {
       const exp = Math.floor(Date.now() / 1000) + Math.max(1, parseInt(expiryMinutes || '0', 10)) * 60;
 
       const order = { maker: norm(account), base: norm(selected.base.address), quote: norm(selected.quote.address), side: Number(side), amount: amt, price: px, expiry: toBigInt(exp), nonce: toBigInt(nonce || '0') };
-      const domain = { name: 'CookBook', version: '1', chainId: toBigInt(chainId), verifyingContract: norm(CookBook_ADDRESS) };
+      const domain = { name: domainName, version: domainVersion, chainId: toBigInt(chainId), verifyingContract: norm(COOKBOOK_ADDRESS) };
       const types = { Order: [ { name: 'maker', type: 'address' }, { name: 'base', type: 'address' }, { name: 'quote', type: 'address' }, { name: 'side', type: 'uint8' }, { name: 'amount', type: 'uint256' }, { name: 'price', type: 'uint256' }, { name: 'expiry', type: 'uint256' }, { name: 'nonce', type: 'uint256' } ] };
 
       setStatus('Signing EIP-712 order...');
@@ -612,11 +739,11 @@ export default function CookBookUI() {
         const res = await fetch(`${httpUrl}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: wire, signature }) });
         if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || 'relayer rejected order'); }
         setStatus('Order submitted to relayer');
-        try { await seedCookBook(); } catch {}
+        try { await seedCOOKBOOK(); } catch {}
       } catch (e) { console.error(e); setStatus('Relayer submit error: ' + (e?.message || '')); }
 
       let orderHash = '0x';
-      try { orderHash = await CookBook.orderHash(order); } catch {}
+      try { orderHash = await COOKBOOK.orderHash(order); } catch {}
 
       const entry = { id: orderHash, order, signature, baseSymbol: selected.base.symbol, quoteSymbol: selected.quote.symbol, baseDecimals: selected.base.decimals, quoteDecimals: selected.quote.decimals, createdAt: Date.now() };
       setMyOrders((prev) => [entry, ...prev].slice(0, 500));
@@ -644,10 +771,10 @@ export default function CookBookUI() {
       if (!signer) return alert('Connect wallet');
       if (!entry?.order) return alert('Missing order');
       setStatus('Sending cancelOrder...');
-      const tx = await CookBook.connect(signer).cancelOrder({ maker: norm(entry.order.maker), base: norm(entry.order.base), quote: norm(entry.order.quote), side: Number(entry.order.side), amount: toBigInt(entry.order.amount), price: toBigInt(entry.order.price), expiry: toBigInt(entry.order.expiry), nonce: toBigInt(entry.order.nonce) });
+      const tx = await COOKBOOK.connect(signer).cancelOrder({ maker: norm(entry.order.maker), base: norm(entry.order.base), quote: norm(entry.order.quote), side: Number(entry.order.side), amount: toBigInt(entry.order.amount), price: toBigInt(entry.order.price), expiry: toBigInt(entry.order.expiry), nonce: toBigInt(entry.order.nonce) });
       const rcpt = await tx.wait();
       setStatus('Cancelled. Tx: ' + rcpt?.hash);
-      try { await seedCookBook(); } catch {}
+      try { await seedCOOKBOOK(); } catch {}
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
@@ -657,10 +784,10 @@ export default function CookBookUI() {
       const n = String(cancelUpToNonce || '');
       if (!n) return alert('Enter nonce');
       setStatus('Sending cancelUpTo...');
-      const tx = await CookBook.connect(signer).cancelUpTo(toBigInt(n));
+      const tx = await COOKBOOK.connect(signer).cancelUpTo(toBigInt(n));
       const rcpt = await tx.wait();
       setStatus('CancelUpTo confirmed. Tx: ' + rcpt?.hash);
-      try { await seedCookBook(); } catch {}
+      try { await seedCOOKBOOK(); } catch {}
     } catch (e) { console.error(e); setStatus('Error: ' + (e?.shortMessage || e?.message || '')); }
   };
 
@@ -687,6 +814,85 @@ export default function CookBookUI() {
     return `${d}d ago`;
   };
 
+  // Unified Approve / Place Order button logic
+  const [needsApproval, setNeedsApproval] = useState(false);
+  const [approvalChecking, setApprovalChecking] = useState(false);
+  const [approveTokenMeta, setApproveTokenMeta] = useState({ address: '', symbol: '', decimals: 18, spender: '' });
+  const [requiredAllowance, setRequiredAllowance] = useState(0n);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!account || !(signer || provider)) { setNeedsApproval(false); return; }
+        // Determine maker's required token approval (COOKBOOK as spender)
+        let tokenAddr = '';
+        let tokenSymbol = '';
+        let tokenDecimals = 18;
+        let spender = COOKBOOK_ADDRESS;
+        let required = 0n;
+
+        if (Number(side) === 0) {
+          // SELL maker: base token allowance = amountBase
+          tokenAddr = selected.base.address;
+          tokenSymbol = selected.base.symbol;
+          tokenDecimals = selected.base.decimals;
+          try { required = parseUnits(String(amountBase || '0'), tokenDecimals); } catch { required = 0n; }
+        } else {
+          // BUY maker: quote token allowance = amountBase * price
+          tokenAddr = selected.quote.address;
+          tokenSymbol = selected.quote.symbol;
+          tokenDecimals = selected.quote.decimals;
+          try {
+            const amt = parseUnits(String(amountBase || '0'), selected.base.decimals);
+            const px = parseUnits(String(priceHuman || '0'), 18);
+            required = (toBigInt(amt) * toBigInt(px)) / toBigInt(parseUnits('1', 18));
+          } catch { required = 0n; }
+        }
+
+        setApproveTokenMeta({ address: tokenAddr, symbol: tokenSymbol, decimals: tokenDecimals, spender });
+        setRequiredAllowance(required);
+
+        if (!tokenAddr || required <= 0n) { setNeedsApproval(false); return; }
+        setApprovalChecking(true);
+        const erc = new Contract(tokenAddr, ERC20_ABI, signer ?? provider);
+        const current = await erc.allowance(account, spender).catch(() => 0n);
+        setNeedsApproval(toBigInt(current) < required);
+      } catch {
+        setNeedsApproval(false);
+      } finally {
+        setApprovalChecking(false);
+      }
+    })();
+  }, [account, signer, provider, side, amountBase, priceHuman, selected]);
+
+  const approveIfNeeded = async () => {
+    if (!needsApproval) return true;
+    try {
+      if (!signer) { alert('Connect wallet'); return false; }
+      const erc = getErc20(approveTokenMeta.address);
+      setStatus(`Sending approve for ${approveTokenMeta.symbol}...`);
+      const tx = await erc.connect(signer).approve(approveTokenMeta.spender, requiredAllowance);
+      await tx.wait();
+      setStatus('Approve confirmed');
+      setNeedsApproval(false);
+      return true;
+    } catch (e) {
+      console.error(e);
+      setStatus('Approve error: ' + (e?.shortMessage || e?.message || ''));
+      return false;
+    }
+  };
+
+  const onPrimaryAction = async () => {
+    if (needsApproval) {
+      const ok = await approveIfNeeded();
+      if (!ok) return;
+    }
+    await signOrder();
+  };
+
+  const primaryActionLabel = needsApproval ? `Approve ${approveTokenMeta.symbol || ''}` : 'Place Order';
+
   // Render
   return (
     <div style={s.page}>
@@ -694,7 +900,7 @@ export default function CookBookUI() {
         <div style={s.navbar}>
           <div style={s.brand}>
             <span style={s.brandBadge} />
-            CookBook
+            COOKBOOK
           </div>
           <div style={s.navbarRight}>
             <button style={s.button} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -723,15 +929,30 @@ export default function CookBookUI() {
 
         {!isMobile && (
           <div style={s.grid3}>
-            <MarketList markets={markets} selectedIndex={selectedIndex} onSelect={setSelectedIndex} tokenLogos={tokenLogos} s={s} statsMap={statsMap} isMobile={false} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={s.card}>
-                <div style={s.sectionTitle}>Chart — {selected.id}</div>
-                <GeckoTerminalChart baseAddress={selected.base.address} height={380} />
+            {desktopView === 'list' ? (
+              <div style={{ gridColumn: '1 / span 3' }}>
+                <MarketsTable markets={viewMarkets} selectedIndex={selectedIndex} onSelect={(i) => { setSelectedIndex(i); }} tokenLogos={tokenLogos} s={s} statsMap={statsMap} filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} onOpenDetail={() => setDesktopView('detail')} />
               </div>
+            ) : (
+              <>
+                <div style={{ gridColumn: '2 / span 2' }}>
+                  <div style={s.card}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <button style={s.button} onClick={() => setDesktopView('list')}>← Markets</button>
+                      <div style={s.sectionTitle}>{selected.id} — Chart</div>
+                    </div>
+                    <GeckoTerminalChart baseAddress={selected.base.address} height={420} />
+                  </div>
+                </div>
+                <div style={{ gridColumn: '1 / span 1', gridRow: '1', alignSelf: 'stretch' }}>
+                  <MarketsTable markets={viewMarkets} selectedIndex={selectedIndex} onSelect={setSelectedIndex} tokenLogos={tokenLogos} s={s} statsMap={statsMap} filter={filter} setFilter={setFilter} search={search} setSearch={setSearch} />
+                </div>
+              </>
+            )}
 
-              <CookBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={false} />
+            <div style={{ display: desktopView === 'detail' ? 'flex' : 'none', gridColumn: '2 / span 1', gridRow: '2', flexDirection: 'column', gap: 20 }}>
+              
+              <COOKBOOKTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={false} />
 
               <div style={s.card}>
                 <div style={s.sectionTitle}>Recent Trades — {selected.id}</div>
@@ -776,13 +997,13 @@ export default function CookBookUI() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: desktopView === 'detail' ? 'flex' : 'none', gridColumn: '3 / span 1', gridRow: '2', flexDirection: 'column', gap: 20 }}>
               <div style={s.card}>
                 <div style={s.sectionTitle}>Place Order — {selected.id}</div>
                 <div style={{ ...s.hint, marginBottom: 8 }}>
                   Balances: {formatBalanceShort(balanceBase)} {selected.base.symbol} · {formatBalanceShort(balanceQuote)} {selected.quote.symbol}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <div style={s.label}>Side</div>
                     <select style={s.select} value={side} onChange={e => setSide(Number(e.target.value))}>
@@ -812,31 +1033,11 @@ export default function CookBookUI() {
                   </div>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button style={{ ...s.button, ...s.buttonPrimary }} onClick={signOrder} disabled={!account}>Place Order</button>
+                  <button style={{ ...s.button, ...s.buttonPrimary }} onClick={onPrimaryAction} disabled={!account || approvalChecking}>{primaryActionLabel}</button>
                 </div>
               </div>
 
-              <div style={s.card}>
-                <div style={s.sectionTitle}>Approvals</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                  <div>
-                    <div style={s.label}>Token</div>
-                    <input style={s.input} placeholder="0x..." value={approveTokenAddr} onChange={e=>setApproveTokenAddr(e.target.value)} />
-                  </div>
-                  <div>
-                    <div style={s.label}>Amount (human)</div>
-                    <input style={s.input} placeholder="e.g., 1000" value={approveAmount} onChange={e=>setApproveAmount(e.target.value)} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'end' }}>
-                    <button style={s.button} onClick={approveToken} disabled={!account}>Approve</button>
-                  </div>
-                </div>
-                <div style={{ ...s.hint, marginTop: 8 }}>
-                  Approve the router {ROUTER_ADDRESS.slice(0,6)}...{ROUTER_ADDRESS.slice(-4)} for the token you will pay as taker:
-                  SELL maker ➜ taker pays {selected.quote.symbol}; BUY maker ➜ taker pays {selected.base.symbol}.
-                </div>
-              </div>
-
+              
               
               <div style={s.card}>
                 <div style={s.sectionTitle}>My Orders (local)</div>
@@ -883,13 +1084,17 @@ export default function CookBookUI() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {mobileView === 'list' && (
               <MarketList
-                markets={markets}
+                markets={viewMarkets}
                 selectedIndex={selectedIndex}
                 onSelect={setSelectedIndex}
                 tokenLogos={tokenLogos}
                 s={s}
                 statsMap={statsMap}
                 isMobile={true}
+                filter={filter}
+                setFilter={setFilter}
+                search={search}
+                setSearch={setSearch}
                 onMobileOpen={() => { setMobileView('detail'); setActiveTab('chart'); }}
               />
             )}
@@ -909,7 +1114,7 @@ export default function CookBookUI() {
                   {activeTab === 'chart' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <GeckoTerminalChart baseAddress={selected.base.address} height={300} />
-                      <CookBookTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={true} twoCols={true} />
+                      <COOKBOOKTables bids={bids} asks={asks} baseSymbol={selected.base.symbol} quoteSymbol={selected.quote.symbol} baseDecimals={selected.base.decimals} s={s} isMobile={true} twoCols={true} />
 
                       <div>
                         <div style={s.sectionTitle}>Recent Trades — {selected.id}</div>
@@ -980,14 +1185,7 @@ export default function CookBookUI() {
                           <input style={s.input} value={nonce} onChange={e=>setNonce(e.target.value)} />
                         </div>
                       </div>
-                      <button style={{ ...s.button, ...s.buttonPrimary }} onClick={signOrder} disabled={!account}>Place Order</button>
-
-                      <div style={{ ...s.hint, marginTop: 8 }}>Approvals</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, minWidth: 0 }}>
-                        <input style={s.input} placeholder="Token 0x..." value={approveTokenAddr} onChange={e=>setApproveTokenAddr(e.target.value)} />
-                        <input style={s.input} placeholder="Amount (human)" value={approveAmount} onChange={e=>setApproveAmount(e.target.value)} />
-                      </div>
-                      <button style={s.button} onClick={approveToken} disabled={!account}>Approve</button>
+                      <button style={{ ...s.button, ...s.buttonPrimary }} onClick={onPrimaryAction} disabled={!account || approvalChecking}>{primaryActionLabel}</button>
                     </div>
                   )}
                 </div>

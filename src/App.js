@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import CookBookUI from './components/CookBookUI';
+import COOKBOOKUI from './components/OrderBookUI';
 import './App.css';
 
 function Landing({ goTrade, theme, setTheme }) {
@@ -24,8 +24,23 @@ function Landing({ goTrade, theme, setTheme }) {
   const s = {
     page: { minHeight: '100vh', background: colors.pageBg, color: colors.text, overflowX: 'hidden' },
     container: { maxWidth: 1200, margin: '0 auto', padding: isMobile ? '20px 12px' : '32px 16px' },
-    navbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 8, flexWrap: isMobile ? 'nowrap' : 'wrap', position: 'relative' },
-    brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, letterSpacing: 0.4 },
+    navbar: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 24,
+      gap: 8,
+      flexWrap: isMobile ? 'nowrap' : 'wrap',
+      position: isMobile ? 'sticky' : 'relative',
+      top: isMobile ? 0 : undefined,
+      padding: isMobile ? '10px 12px' : undefined,
+      background: isMobile ? (dark ? 'rgba(11,15,26,0.6)' : 'rgba(255,255,255,0.8)') : 'transparent',
+      backdropFilter: isMobile ? 'blur(10px)' : undefined,
+      borderBottom: isMobile ? `1px solid ${colors.border}` : 'none',
+      borderRadius: isMobile ? 12 : 0,
+      zIndex: 100
+    },
+    brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 800, letterSpacing: 0.4, fontSize: isMobile ? 16 : 18 },
     brandBadge: { width: 10, height: 10, borderRadius: 12, background: 'linear-gradient(45deg,#00e0ff,#7b61ff)', boxShadow: '0 0 12px #48f' },
     btn: { padding: '12px 16px', borderRadius: 14, border: `1px solid ${colors.border}`, background: colors.button, color: colors.text, cursor: 'pointer' },
     btnPrimary: { background: colors.buttonPrimary, border: 'none', color: '#fff', boxShadow: '0 10px 30px rgba(0,224,255,0.22)' },
@@ -37,7 +52,7 @@ function Landing({ goTrade, theme, setTheme }) {
     heroCard: { background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 20, padding: 18 },
     img: { width: '100%', borderRadius: 16, border: `1px solid ${colors.border}` },
     section: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 16, marginTop: 32 },
-    card: { background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 18, minHeight: 140 },
+    card: { background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 16, padding: isMobile ? 14 : 18, minHeight: 140, boxShadow: dark ? '0 10px 30px rgba(0,0,0,0.25)' : '0 10px 20px rgba(0,0,0,0.08)' },
     h3: { margin: '0 0 6px', color: colors.title },
     p: { margin: 0, color: colors.hint },
     footer: { marginTop: 40, opacity: 0.7, fontSize: 13 }
@@ -49,7 +64,7 @@ function Landing({ goTrade, theme, setTheme }) {
         <div style={s.navbar}>
           <div style={s.brand}>
             <span style={s.brandBadge} />
-            CookBook — Trade Any Tokens on BSC
+            COOKBOOK — Trade Any Tokens on BSC
           </div>
           {isMobile ? (
             <div style={{ marginLeft: 'auto', position: 'relative' }}>
@@ -104,8 +119,8 @@ function Landing({ goTrade, theme, setTheme }) {
                 Sign orders off-chain. Settle on-chain. Partial fills, cancel up to nonce, and robust fee model. Non-custodial. Transparent. Live on BSC mainnet.
               </p>
               <div style={s.ctas}>
-                <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Start Trading</button>
-                <a href="#/trade" style={{ ...s.btn, textDecoration: 'none' }}>View Markets</a>
+                <button style={{ ...s.btn, ...s.btnPrimary, width: isMobile ? '100%' : 'auto' }} onClick={goTrade}>Start Trading</button>
+                <a href="#/trade" style={{ ...s.btn, textDecoration: 'none', width: isMobile ? '100%' : 'auto', textAlign: 'center' }}>View Markets</a>
               </div>
             </div>
             <div>
@@ -122,7 +137,7 @@ function Landing({ goTrade, theme, setTheme }) {
             </div>
             <div style={s.card}>
               <h3 style={s.h3}>Off-chain Orders, On-chain Settlement</h3>
-              <p style={s.p}>Reduce gas until fill time. Submit EIP-712 orders and let the relayer route secure settlements to the CookBook.</p>
+              <p style={s.p}>Reduce gas until fill time. Submit EIP-712 orders and let the relayer route secure settlements to the COOKBOOK.</p>
             </div>
             <div style={s.card}>
               <h3 style={s.h3}>Non-Custodial by Design</h3>
@@ -146,7 +161,7 @@ function Landing({ goTrade, theme, setTheme }) {
           </div>
 
           <div style={{ ...s.footer, textAlign: 'center' }}>
-            © {new Date().getFullYear()} CookBook on BSC — Trade any tokens with a professional order book experience.
+            © {new Date().getFullYear()} COOKBOOK on BSC — Trade any tokens with a professional order book experience.
           </div>
         </div>
       </div>
@@ -188,7 +203,7 @@ function Docs({ theme, setTheme, goTrade }) {
     code: { fontFamily: 'monospace', padding: '2px 6px', borderRadius: 6, border: `1px solid ${colors.border}` },
     link: { color: dark ? '#61dafb' : '#0969da', textDecoration: 'none', fontWeight: 600 }
   };
-  const ORDERBOOK = '0xc42e757Cafa9219716A6b504986005319d6813eA';
+  const COOKBOOK = '0xc42e757Cafa9219716A6b504986005319d6813eA';
   const ROUTER = '0xd753D91AE23D79A4178368efef2981aee315ccaA';
 
   return (
@@ -197,7 +212,7 @@ function Docs({ theme, setTheme, goTrade }) {
         <div style={s.navbar}>
           <div style={s.brand}>
             <span style={s.brandBadge} />
-            CookBook — Documentation
+            COOKBOOK — Documentation
           </div>
           {isMobile ? (
             <div style={{ marginLeft: 'auto', position: 'relative' }}>
@@ -242,8 +257,8 @@ function Docs({ theme, setTheme, goTrade }) {
         </div>
 
         <div style={s.card}>
-          <h1 style={s.h1}>How CookBook Works</h1>
-          <p style={s.p}>CookBook is a hybrid order book DEX on BNB Smart Chain (BSC). Users sign orders off-chain and settlement happens fully on-chain for transparency and security.</p>
+          <h1 style={s.h1}>How COOKBOOK Works</h1>
+          <p style={s.p}>COOKBOOK is a hybrid order book DEX on BNB Smart Chain (BSC). Users sign orders off-chain and settlement happens fully on-chain for transparency and security.</p>
         </div>
 
         <div style={s.card}>
@@ -264,7 +279,7 @@ function Docs({ theme, setTheme, goTrade }) {
 
         <div style={s.card}>
           <h2 style={s.h2}>Fees</h2>
-          <p style={s.p}>CookBook charges a 0.4% fee in the quote token, only when a trade fills. The fee is paid by the side that pays quote tokens in the trade:</p>
+          <p style={s.p}>COOKBOOK charges a 0.4% fee in the quote token, only when a trade fills. The fee is paid by the side that pays quote tokens in the trade:</p>
           <ul style={s.list}>
             <li><span style={s.p}>Maker SELL (side=0): Taker pays quote + fee.</span></li>
             <li><span style={s.p}>Maker BUY (side=1): Maker pays quote + fee.</span></li>
@@ -274,16 +289,16 @@ function Docs({ theme, setTheme, goTrade }) {
         <div style={s.card}>
           <h2 style={s.h2}>Approvals</h2>
           <p style={s.p}><strong>Taker</strong>: Approve the Router for the token you pay.</p>
-          <p style={s.p}><strong>Maker</strong>: Approve the OrderBook for the token you transfer when filled (base for SELL, quote for BUY).</p>
+          <p style={s.p}><strong>Maker</strong>: Approve the COOKBOOK for the token you transfer when filled (base for SELL, quote for BUY).</p>
           <p style={{ ...s.p, marginTop: 8 }}>
             Router: <code style={s.code}>{ROUTER}</code>
             {' '}·{' '}
             <a style={s.link} target="_blank" rel="noreferrer" href={`https://bscscan.com/address/${ROUTER}`}>View on BscScan</a>
           </p>
           <p style={s.p}>
-            OrderBook: <code style={s.code}>{ORDERBOOK}</code>
+            COOKBOOK: <code style={s.code}>{COOKBOOK}</code>
             {' '}·{' '}
-            <a style={s.link} target="_blank" rel="noreferrer" href={`https://bscscan.com/address/${ORDERBOOK}`}>View on BscScan</a>
+            <a style={s.link} target="_blank" rel="noreferrer" href={`https://bscscan.com/address/${COOKBOOK}`}>View on BscScan</a>
           </p>
         </div>
 
@@ -292,13 +307,13 @@ function Docs({ theme, setTheme, goTrade }) {
           <ul style={s.list}>
             <li><span style={s.p}>Non-custodial: Funds remain in your wallet until fills occur.</span></li>
             <li><span style={s.p}>EIP-712 signatures: Orders are authenticated by the maker.</span></li>
-            <li><span style={s.p}>On-chain settlement: All transfers execute via the OrderBook contract.</span></li>
+            <li><span style={s.p}>On-chain settlement: All transfers execute via the COOKBOOK contract.</span></li>
             <li><span style={s.p}>Event-rich logs: Fills, cancellations, and allowlist changes are emitted on-chain.</span></li>
           </ul>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Open CookBook</button>
+          <button style={{ ...s.btn, ...s.btnPrimary }} onClick={goTrade}>Open COOKBOOK</button>
         </div>
       </div>
     </div>
@@ -333,7 +348,7 @@ export default function App() {
 
   const goTrade = () => { try { window.location.hash = '#/trade'; } catch {} };
 
-  if (route === '#/trade') return <CookBookUI />;
+  if (route === '#/trade') return <COOKBOOKUI />;
   if (route === '#/docs') return <Docs theme={theme} setTheme={setTheme} goTrade={goTrade} />;
   return <Landing goTrade={goTrade} theme={theme} setTheme={setTheme} />;
 }
