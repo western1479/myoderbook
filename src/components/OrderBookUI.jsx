@@ -4,8 +4,6 @@ import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3mo
 
 // Deployed COOKBOOK (BSC)
 const COOKBOOK_ADDRESS = '0xc42e757Cafa9219716A6b504986005319d6813eA';
-// Deployed Settlement Router (pull taker funds via allowance)
-const ROUTER_ADDRESS = '0xd753D91AE23D79A4178368efef2981aee315ccaA';
 
 // Minimal ERC20 ABI for approvals and metadata
 const ERC20_ABI = [
